@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
+import { Mouse } from '../entities/Mouse';
 
 export class GameScene extends Phaser.Scene {
   private gridManager!: GridManager;
   private gridGraphics!: Phaser.GameObjects.Graphics;
+  private mouse!: Mouse;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -20,12 +22,16 @@ export class GameScene extends Phaser.Scene {
     // Create graphics object for rendering grid
     this.gridGraphics = this.add.graphics();
 
+    // Create mouse player
+    this.mouse = new Mouse(this, this.gridManager);
+
     // Render initial grid
     this.renderGrid();
   }
 
   update() {
-    // Grid updates will happen here
+    this.mouse.update();
+    this.renderGrid();
   }
 
   private renderGrid(): void {

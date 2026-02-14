@@ -10,7 +10,6 @@ export class FloodFill {
   ): void {
     if (trail.length === 0) return;
 
-    const grid = gridManager.getGrid();
     const cols = gridManager.getCols();
     const rows = gridManager.getRows();
 

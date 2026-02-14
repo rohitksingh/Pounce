@@ -10,7 +10,8 @@
       "Bash(npm create:*)",
       "Bash(npm install:*)",
       "Bash(git merge:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

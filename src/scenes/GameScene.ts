@@ -3,6 +3,7 @@ import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
 import { Mouse } from '../entities/Mouse';
 import { Cat } from '../entities/Cat';
+import { FloodFill } from '../utils/FloodFill';
 
 export class GameScene extends Phaser.Scene {
   private gridManager!: GridManager;
@@ -52,7 +53,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleLoopCompleted(trail: { x: number; y: number }[]): void {
-    const { FloodFill } = require('../utils/FloodFill');
     FloodFill.fillTerritory(this.gridManager, trail, this.cats);
     this.mouse.resetTrail();
 

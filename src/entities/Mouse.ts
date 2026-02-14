@@ -59,11 +59,11 @@ export class Mouse extends Phaser.GameObjects.Graphics {
 
     // Only move if position changed
     if (newX !== this.gridX || newY !== this.gridY) {
-      this.moveTo(newX, newY);
+      this.moveToGrid(newX, newY);
     }
   }
 
-  private moveTo(newX: number, newY: number): void {
+  private moveToGrid(newX: number, newY: number): void {
     const currentState = this.gridManager.getCellState(this.gridX, this.gridY);
     const targetState = this.gridManager.getCellState(newX, newY);
 

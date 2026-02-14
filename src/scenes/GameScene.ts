@@ -12,6 +12,7 @@ export class GameScene extends Phaser.Scene {
   private cats: Cat[] = [];
   private lives: number = GameConfig.initialLives;
   private gameOver: boolean = false;
+  private uiText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -37,6 +38,14 @@ export class GameScene extends Phaser.Scene {
     // Listen for events
     this.events.on('loop-completed', this.handleLoopCompleted, this);
     this.events.on('mouse-hit-trail', this.handleMouseHit, this);
+
+    // Create UI
+    this.uiText = this.add.text(10, 10, '', {
+      fontSize: '20px',
+      color: '#ecf0f1',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    });
 
     // Render initial grid
     this.renderGrid();
@@ -99,6 +108,12 @@ export class GameScene extends Phaser.Scene {
     this.checkCollisions();
     this.renderGrid();
     this.renderCats();
+    this.updateUI();
+  }
+
+  private updateUI(): void {
+    const percentage = this.gridManager.getPercentageCaptured();
+    this.uiText.setText(`Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives}`);
   }
 
   private checkCollisions(): void {

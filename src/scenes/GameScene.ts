@@ -132,22 +132,28 @@ export class GameScene extends Phaser.Scene {
     const cellSize = GameConfig.cellSize;
     const mouseX = mousePos.x * cellSize + cellSize / 2;
     const mouseY = mousePos.y * cellSize + cellSize / 2;
+    const mouseRadius = cellSize * 0.4;
+    const catRadius = cellSize * 0.4;
+    const collisionDistance = mouseRadius + catRadius;
 
     // Check if any cat is touching the mouse or trail
     for (const cat of this.cats) {
-      const distance = Phaser.Math.Distance.Between(mouseX, mouseY, cat.x, cat.y);
-      if (distance < cellSize) {
+      // Check collision with mouse position
+      const mouseDistance = Phaser.Math.Distance.Between(mouseX, mouseY, cat.x, cat.y);
+      if (mouseDistance < collisionDistance) {
         this.handleMouseHit();
         return;
       }
 
-      // Check if cat touches trail
+      // Check if cat touches any point on the trail
       const trail = this.mouse.getTrail();
       for (const point of trail) {
         const trailX = point.x * cellSize + cellSize / 2;
         const trailY = point.y * cellSize + cellSize / 2;
-        const trailDist = Phaser.Math.Distance.Between(trailX, trailY, cat.x, cat.y);
-        if (trailDist < cellSize) {
+        const trailDistance = Phaser.Math.Distance.Between(trailX, trailY, cat.x, cat.y);
+
+        // Use same collision distance (cat radius + trail point radius)
+        if (trailDistance < collisionDistance) {
           this.handleMouseHit();
           return;
         }

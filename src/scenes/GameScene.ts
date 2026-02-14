@@ -10,6 +10,8 @@ export class GameScene extends Phaser.Scene {
   private catGraphics!: Phaser.GameObjects.Graphics;
   private mouse!: Mouse;
   private cats: Cat[] = [];
+  private lives: number = GameConfig.initialLives;
+  private gameOver: boolean = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -32,8 +34,9 @@ export class GameScene extends Phaser.Scene {
     // Spawn cats in VOID area
     this.spawnCats();
 
-    // Listen for loop completion
+    // Listen for events
     this.events.on('loop-completed', this.handleLoopCompleted, this);
+    this.events.on('mouse-hit-trail', this.handleMouseHit, this);
 
     // Render initial grid
     this.renderGrid();
@@ -43,12 +46,99 @@ export class GameScene extends Phaser.Scene {
     const { FloodFill } = require('../utils/FloodFill');
     FloodFill.fillTerritory(this.gridManager, trail, this.cats);
     this.mouse.resetTrail();
+
+    // Check win condition
+    const percentage = this.gridManager.getPercentageCaptured();
+    if (percentage >= GameConfig.winPercentage) {
+      this.gameOver = true;
+      this.showWin();
+    }
+  }
+
+  private showGameOver(): void {
+    const text = this.add.text(
+      GameConfig.width / 2,
+      GameConfig.height / 2,
+      'GAME OVER\n\nClick to Restart',
+      {
+        fontSize: '48px',
+        color: '#e74c3c',
+        align: 'center',
+        backgroundColor: '#000000',
+        padding: { x: 20, y: 20 }
+      }
+    );
+    text.setOrigin(0.5);
+    text.setInteractive({ useHandCursor: true });
+    text.on('pointerdown', () => this.scene.restart());
+  }
+
+  private showWin(): void {
+    const percentage = this.gridManager.getPercentageCaptured();
+    const text = this.add.text(
+      GameConfig.width / 2,
+      GameConfig.height / 2,
+      `YOU WIN!\n\nCaptured: ${percentage.toFixed(1)}%\n\nClick to Play Again`,
+      {
+        fontSize: '48px',
+        color: '#2ecc71',
+        align: 'center',
+        backgroundColor: '#000000',
+        padding: { x: 20, y: 20 }
+      }
+    );
+    text.setOrigin(0.5);
+    text.setInteractive({ useHandCursor: true });
+    text.on('pointerdown', () => this.scene.restart());
   }
 
   update() {
+    if (this.gameOver) return;
+
     this.mouse.update();
+    this.checkCollisions();
     this.renderGrid();
     this.renderCats();
+  }
+
+  private checkCollisions(): void {
+    if (!this.mouse.isInVoid()) return; // Mouse is safe on captured territory
+
+    const mousePos = this.mouse.getGridPosition();
+    const cellSize = GameConfig.cellSize;
+    const mouseX = mousePos.x * cellSize + cellSize / 2;
+    const mouseY = mousePos.y * cellSize + cellSize / 2;
+
+    // Check if any cat is touching the mouse or trail
+    for (const cat of this.cats) {
+      const distance = Phaser.Math.Distance.Between(mouseX, mouseY, cat.x, cat.y);
+      if (distance < cellSize) {
+        this.handleMouseHit();
+        return;
+      }
+
+      // Check if cat touches trail
+      const trail = this.mouse.getTrail();
+      for (const point of trail) {
+        const trailX = point.x * cellSize + cellSize / 2;
+        const trailY = point.y * cellSize + cellSize / 2;
+        const trailDist = Phaser.Math.Distance.Between(trailX, trailY, cat.x, cat.y);
+        if (trailDist < cellSize) {
+          this.handleMouseHit();
+          return;
+        }
+      }
+    }
+  }
+
+  private handleMouseHit(): void {
+    this.lives--;
+    this.mouse.resetTrail();
+
+    if (this.lives <= 0) {
+      this.gameOver = true;
+      this.showGameOver();
+    }
   }
 
   private spawnCats(): void {

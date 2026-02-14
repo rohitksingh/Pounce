@@ -10,7 +10,7 @@ enum Direction {
   RIGHT = 4
 }
 
-export class Mouse extends Phaser.GameObjects.Graphics {
+export class Mouse extends Phaser.GameObjects.Sprite {
   private gridX: number;
   private gridY: number;
   private visualX: number; // Smooth interpolated position for rendering
@@ -26,8 +26,12 @@ export class Mouse extends Phaser.GameObjects.Graphics {
   private lerpSpeed: number = 0.3; // Interpolation speed (0-1, higher = faster)
 
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
-    super(scene);
+    const cellSize = GameConfig.cellSize;
+    super(scene, cellSize + cellSize / 2, cellSize + cellSize / 2, 'cat');
+
     scene.add.existing(this);
+    this.setOrigin(0.5, 0.5);
+    this.setScale(cellSize / 32); // Scale sprite to match cell size
 
     this.gridManager = gridManager;
 
@@ -45,21 +49,25 @@ export class Mouse extends Phaser.GameObjects.Graphics {
       S: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       D: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
-
-    this.render();
   }
 
   update(_time: number, delta: number): void {
     this.handleInput();
     this.handleAutoMovement(delta);
     this.updateVisualPosition();
-    this.render();
+    this.updateSpritePosition();
   }
 
   private updateVisualPosition(): void {
     // Smoothly interpolate visual position towards grid position
     this.visualX = Phaser.Math.Linear(this.visualX, this.gridX, this.lerpSpeed);
     this.visualY = Phaser.Math.Linear(this.visualY, this.gridY, this.lerpSpeed);
+  }
+
+  private updateSpritePosition(): void {
+    const cellSize = GameConfig.cellSize;
+    this.x = this.visualX * cellSize + cellSize / 2;
+    this.y = this.visualY * cellSize + cellSize / 2;
   }
 
   private handleInput(): void {
@@ -143,21 +151,6 @@ export class Mouse extends Phaser.GameObjects.Graphics {
     this.isDrawingTrail = false;
     this.scene.events.emit('loop-completed', this.trail);
     this.trail = [];
-  }
-
-  private render(): void {
-    this.clear();
-
-    const cellSize = GameConfig.cellSize;
-    const radius = cellSize * 0.4;
-
-    // Draw mouse as blue circle using smooth visual position
-    this.fillStyle(GameConfig.colors.mouse, 1);
-    this.fillCircle(
-      this.visualX * cellSize + cellSize / 2,
-      this.visualY * cellSize + cellSize / 2,
-      radius
-    );
   }
 
   getGridPosition(): { x: number; y: number } {

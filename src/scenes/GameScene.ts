@@ -32,8 +32,17 @@ export class GameScene extends Phaser.Scene {
     // Spawn cats in VOID area
     this.spawnCats();
 
+    // Listen for loop completion
+    this.events.on('loop-completed', this.handleLoopCompleted, this);
+
     // Render initial grid
     this.renderGrid();
+  }
+
+  private handleLoopCompleted(trail: { x: number; y: number }[]): void {
+    const { FloodFill } = require('../utils/FloodFill');
+    FloodFill.fillTerritory(this.gridManager, trail, this.cats);
+    this.mouse.resetTrail();
   }
 
   update() {

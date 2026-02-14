@@ -7,11 +7,12 @@ export class FloodFill {
     gridManager: GridManager,
     trail: { x: number; y: number }[],
     cats: Cat[]
-  ): void {
-    if (trail.length === 0) return;
+  ): Cat[] {
+    if (trail.length === 0) return [];
 
     const cols = gridManager.getCols();
     const rows = gridManager.getRows();
+    const catsToDestroy: Cat[] = [];
 
     // Mark trail as captured first
     trail.forEach(point => {
@@ -30,8 +31,16 @@ export class FloodFill {
         region.forEach(cell => {
           gridManager.setCellState(cell.x, cell.y, CellState.CAPTURED);
         });
+
+        // If we're filling a region with cats, mark them for destruction
+        if (hasCats) {
+          const trappedCats = this.getCatsInRegion(region, cats);
+          catsToDestroy.push(...trappedCats);
+        }
       }
     });
+
+    return catsToDestroy;
   }
 
   private static findVoidRegions(gridManager: GridManager): { x: number; y: number }[][] {
@@ -106,5 +115,22 @@ export class FloodFill {
 
       return region.some(cell => cell.x === catGridX && cell.y === catGridY);
     });
+  }
+
+  private static getCatsInRegion(region: { x: number; y: number }[], cats: Cat[]): Cat[] {
+    const cellSize = GameConfig.cellSize;
+    const trappedCats: Cat[] = [];
+
+    cats.forEach(cat => {
+      const catGridX = Math.floor(cat.x / cellSize);
+      const catGridY = Math.floor(cat.y / cellSize);
+
+      const isInRegion = region.some(cell => cell.x === catGridX && cell.y === catGridY);
+      if (isInRegion) {
+        trappedCats.push(cat);
+      }
+    });
+
+    return trappedCats;
   }
 }

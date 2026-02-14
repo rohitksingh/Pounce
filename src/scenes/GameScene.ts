@@ -53,8 +53,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleLoopCompleted(trail: { x: number; y: number }[]): void {
-    FloodFill.fillTerritory(this.gridManager, trail, this.cats);
+    const catsToDestroy = FloodFill.fillTerritory(this.gridManager, trail, this.cats);
     this.mouse.resetTrail();
+
+    // Destroy trapped cats
+    if (catsToDestroy.length > 0) {
+      catsToDestroy.forEach(cat => {
+        cat.destroy();
+      });
+      // Remove from cats array
+      this.cats = this.cats.filter(cat => !catsToDestroy.includes(cat));
+    }
 
     // Check win condition
     const percentage = this.gridManager.getPercentageCaptured();

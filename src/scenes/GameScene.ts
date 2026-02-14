@@ -110,10 +110,10 @@ export class GameScene extends Phaser.Scene {
     text.on('pointerdown', () => this.scene.restart());
   }
 
-  update() {
+  update(time: number, delta: number) {
     if (this.gameOver) return;
 
-    this.mouse.update();
+    this.mouse.update(time, delta);
     this.checkCollisions();
     this.renderGrid();
     this.renderCats();

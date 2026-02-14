@@ -2,6 +2,14 @@ import Phaser from 'phaser';
 import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
 
+enum Direction {
+  NONE = 0,
+  UP = 1,
+  DOWN = 2,
+  LEFT = 3,
+  RIGHT = 4
+}
+
 export class Mouse extends Phaser.GameObjects.Graphics {
   private gridX: number;
   private gridY: number;
@@ -10,6 +18,9 @@ export class Mouse extends Phaser.GameObjects.Graphics {
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private trail: { x: number; y: number }[] = [];
   private isDrawingTrail: boolean = false;
+  private currentDirection: Direction = Direction.NONE;
+  private moveTimer: number = 0;
+  private moveDelay: number = 150; // milliseconds between moves
 
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
     super(scene);
@@ -33,32 +44,58 @@ export class Mouse extends Phaser.GameObjects.Graphics {
     this.render();
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
     this.handleInput();
+    this.handleAutoMovement(delta);
     this.render();
   }
 
   private handleInput(): void {
-    let newX = this.gridX;
-    let newY = this.gridY;
-
+    // Change direction based on key press
     if (Phaser.Input.Keyboard.JustDown(this.cursors.left!) || Phaser.Input.Keyboard.JustDown(this.wasd.A)) {
-      newX--;
+      this.currentDirection = Direction.LEFT;
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.right!) || Phaser.Input.Keyboard.JustDown(this.wasd.D)) {
-      newX++;
+      this.currentDirection = Direction.RIGHT;
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.up!) || Phaser.Input.Keyboard.JustDown(this.wasd.W)) {
-      newY--;
+      this.currentDirection = Direction.UP;
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down!) || Phaser.Input.Keyboard.JustDown(this.wasd.S)) {
-      newY++;
+      this.currentDirection = Direction.DOWN;
     }
+  }
 
-    // Check bounds
-    if (newX < 0 || newX >= this.gridManager.getCols() || newY < 0 || newY >= this.gridManager.getRows()) {
-      return; // Out of bounds
-    }
+  private handleAutoMovement(delta: number): void {
+    if (this.currentDirection === Direction.NONE) return;
 
-    // Only move if position changed
-    if (newX !== this.gridX || newY !== this.gridY) {
+    this.moveTimer += delta;
+
+    if (this.moveTimer >= this.moveDelay) {
+      this.moveTimer = 0;
+
+      let newX = this.gridX;
+      let newY = this.gridY;
+
+      switch (this.currentDirection) {
+        case Direction.UP:
+          newY--;
+          break;
+        case Direction.DOWN:
+          newY++;
+          break;
+        case Direction.LEFT:
+          newX--;
+          break;
+        case Direction.RIGHT:
+          newX++;
+          break;
+      }
+
+      // Check bounds
+      if (newX < 0 || newX >= this.gridManager.getCols() || newY < 0 || newY >= this.gridManager.getRows()) {
+        this.currentDirection = Direction.NONE; // Stop at boundary
+        return;
+      }
+
+      // Move to new position
       this.moveToGrid(newX, newY);
     }
   }

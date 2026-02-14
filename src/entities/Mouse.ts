@@ -13,6 +13,8 @@ enum Direction {
 export class Mouse extends Phaser.GameObjects.Graphics {
   private gridX: number;
   private gridY: number;
+  private visualX: number; // Smooth interpolated position for rendering
+  private visualY: number;
   private gridManager: GridManager;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
@@ -21,6 +23,7 @@ export class Mouse extends Phaser.GameObjects.Graphics {
   private currentDirection: Direction = Direction.NONE;
   private moveTimer: number = 0;
   private moveDelay: number = 150; // milliseconds between moves
+  private lerpSpeed: number = 0.3; // Interpolation speed (0-1, higher = faster)
 
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
     super(scene);
@@ -31,6 +34,8 @@ export class Mouse extends Phaser.GameObjects.Graphics {
     // Start position - top-left corner on captured border
     this.gridX = 1;
     this.gridY = 1;
+    this.visualX = 1;
+    this.visualY = 1;
 
     // Set up input
     this.cursors = scene.input.keyboard!.createCursorKeys();
@@ -47,7 +52,14 @@ export class Mouse extends Phaser.GameObjects.Graphics {
   update(_time: number, delta: number): void {
     this.handleInput();
     this.handleAutoMovement(delta);
+    this.updateVisualPosition();
     this.render();
+  }
+
+  private updateVisualPosition(): void {
+    // Smoothly interpolate visual position towards grid position
+    this.visualX = Phaser.Math.Linear(this.visualX, this.gridX, this.lerpSpeed);
+    this.visualY = Phaser.Math.Linear(this.visualY, this.gridY, this.lerpSpeed);
   }
 
   private handleInput(): void {
@@ -139,11 +151,11 @@ export class Mouse extends Phaser.GameObjects.Graphics {
     const cellSize = GameConfig.cellSize;
     const radius = cellSize * 0.4;
 
-    // Draw mouse as blue circle
+    // Draw mouse as blue circle using smooth visual position
     this.fillStyle(GameConfig.colors.mouse, 1);
     this.fillCircle(
-      this.gridX * cellSize + cellSize / 2,
-      this.gridY * cellSize + cellSize / 2,
+      this.visualX * cellSize + cellSize / 2,
+      this.visualY * cellSize + cellSize / 2,
       radius
     );
   }

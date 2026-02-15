@@ -7,8 +7,33 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Create dynamic placeholder textures for sprites
+    // Load cat animation frames
+    this.loadCatAnimations();
+
+    // Create placeholder textures for other sprites
     this.createSpriteTextures();
+  }
+
+  private loadCatAnimations(): void {
+    // Load Idle animation frames (10 frames)
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-idle-${i}`, `assets/sprites/cat/Idle (${i}).png`);
+    }
+
+    // Load Walk animation frames (10 frames)
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-walk-${i}`, `assets/sprites/cat/Walk (${i}).png`);
+    }
+
+    // Load Hurt animation frames (10 frames) - for when hit
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-hurt-${i}`, `assets/sprites/cat/Hurt (${i}).png`);
+    }
+
+    // Load Dead animation frames (10 frames) - for game over
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-dead-${i}`, `assets/sprites/cat/Dead (${i}).png`);
+    }
   }
 
   create() {
@@ -20,18 +45,7 @@ export class BootScene extends Phaser.Scene {
     const size = 32;
     const radius = 12;
 
-    // Create CAT sprite (orange player)
-    const catTexture = this.add.graphics();
-    catTexture.fillStyle(0xFFA500, 1); // Orange
-    catTexture.fillCircle(size / 2, size / 2, radius);
-    catTexture.lineStyle(2, 0xFF8C00, 1); // Darker orange outline
-    catTexture.strokeCircle(size / 2, size / 2, radius);
-    // Add simple "ears"
-    catTexture.fillStyle(0xFFA500, 1);
-    catTexture.fillTriangle(size / 2 - 8, size / 2 - 8, size / 2 - 4, size / 2 - 12, size / 2, size / 2 - 8);
-    catTexture.fillTriangle(size / 2 + 8, size / 2 - 8, size / 2 + 4, size / 2 - 12, size / 2, size / 2 - 8);
-    catTexture.generateTexture('cat', size, size);
-    catTexture.destroy();
+    // Cat sprite is now loaded from animation frames, no need to create placeholder
 
     // Create PIRATE sprite (dark enemy with skull accent)
     const pirateTexture = this.add.graphics();

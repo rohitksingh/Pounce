@@ -2,11 +2,20 @@
 
 ## Project Structure
 - Main game file: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts`
+- Entities: `/Users/rohit/workspace/Pounce/src/entities/` (Mouse.ts, Cat.ts, PowerUp.ts)
 - HTML entry: `/Users/rohit/workspace/Pounce/index.html`
 - Config: `/Users/rohit/workspace/Pounce/src/config/GameConfig.ts`
 - Tech stack: Phaser 3 game engine, TypeScript, Vite
 
 ## Common Issues & Patterns
+
+### Phaser Container vs Sprite getBounds() Gotcha
+- **CRITICAL**: `Phaser.GameObjects.Container` does NOT have reliable `getBounds()` for collision
+- **Pattern**: PowerUp extends Container (PowerUp.ts line 9), NOT Sprite
+- **Issue**: Container.getBounds() with Graphics children may fail or return incorrect bounds
+- **Fix Options**: Calculate bounds manually, use distance-based collision, or refactor to Sprite
+- **Location**: PowerUp.ts line 9, GameScene.ts checkPowerUpCollection()
+- **Watch for**: Any collision detection using `getBounds()` on Container objects
 
 ### Collision Detection Mismatches
 - **Pattern**: Visual trail width (3px) doesn't match collision detection radius (cellSize * 0.4 ≈ 4px)

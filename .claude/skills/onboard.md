@@ -253,18 +253,20 @@ User provides feedback or feature request
 - [T003] Animated cat sprites integration
 - [T004] Power-up system (freeze & slow)
 - [T005] Procedural animated background
+- [T006] Slack webhook notifications
+- [T008] Swaying palm trees on captured territory
 
 ### Ticket Numbering
 - Format: T### (e.g., T001, T002, T003)
 - Increment sequentially
-- Next ticket: T006
+- Next ticket: T009
 
 ---
 
 ## Key Conventions
 
 - **Sprite Naming**: 'cat' sprite = player, 'pirate' sprite = enemies
-- **Depth Layers**: 0=background, 1=island, 2=grid, 5=cats, 10=mouse, 100=UI, 200=modals
+- **Depth Layers**: 0=background, 1=island, 2=grid, 2.5=palm trees, 5=cats, 10=mouse, 100=UI, 200=modals
 - **Colors**: Gold/yellow (#FFD700) for UI, wooden deck for captured territory
 - **Movement**: Grid-based with visual interpolation for smooth rendering
 - **Collision**: Circle-based collision detection with radius = cellSize * 0.4

@@ -27,14 +27,19 @@ export class Mouse extends Phaser.GameObjects.Sprite {
 
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
     const cellSize = GameConfig.cellSize;
-    super(scene, cellSize + cellSize / 2, cellSize + cellSize / 2, 'cat');
+    super(scene, cellSize + cellSize / 2, cellSize + cellSize / 2, 'cat-idle-1');
 
     scene.add.existing(this);
     this.setOrigin(0.5, 0.5);
-    this.setScale((cellSize / 32) * 2.5); // Player is larger for visibility
-    this.setTint(0x00ff00); // Green tint to identify as player
+    // Scale down from 542x474 to roughly fit 2-3 cells
+    this.setScale(0.05);
 
     this.gridManager = gridManager;
+
+    // Create animations
+    this.createAnimations();
+    // Start with idle animation
+    this.play('cat-idle');
 
     // Start position - top-left corner on captured border
     this.gridX = 1;
@@ -57,6 +62,58 @@ export class Mouse extends Phaser.GameObjects.Sprite {
     this.handleAutoMovement(delta);
     this.updateVisualPosition();
     this.updateSpritePosition();
+    this.updateAnimation();
+  }
+
+  private createAnimations(): void {
+    // Create idle animation
+    if (!this.scene.anims.exists('cat-idle')) {
+      this.scene.anims.create({
+        key: 'cat-idle',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-idle-${i + 1}` })),
+        frameRate: 10,
+        repeat: -1
+      });
+    }
+
+    // Create walk animation
+    if (!this.scene.anims.exists('cat-walk')) {
+      this.scene.anims.create({
+        key: 'cat-walk',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-walk-${i + 1}` })),
+        frameRate: 15,
+        repeat: -1
+      });
+    }
+
+    // Create hurt animation
+    if (!this.scene.anims.exists('cat-hurt')) {
+      this.scene.anims.create({
+        key: 'cat-hurt',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-hurt-${i + 1}` })),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+
+    // Create dead animation
+    if (!this.scene.anims.exists('cat-dead')) {
+      this.scene.anims.create({
+        key: 'cat-dead',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-dead-${i + 1}` })),
+        frameRate: 10,
+        repeat: 0
+      });
+    }
+  }
+
+  private updateAnimation(): void {
+    // Play walk animation when moving, idle when stopped
+    if (this.currentDirection !== Direction.NONE && this.anims.currentAnim?.key !== 'cat-walk') {
+      this.play('cat-walk');
+    } else if (this.currentDirection === Direction.NONE && this.anims.currentAnim?.key !== 'cat-idle') {
+      this.play('cat-idle');
+    }
   }
 
   private updateVisualPosition(): void {
@@ -156,6 +213,13 @@ export class Mouse extends Phaser.GameObjects.Sprite {
 
   getGridPosition(): { x: number; y: number } {
     return { x: this.gridX, y: this.gridY };
+  }
+
+  getVisualPosition(): { x: number; y: number } {
+    // Ensure visual positions are valid numbers
+    const x = isNaN(this.visualX) ? this.gridX : this.visualX;
+    const y = isNaN(this.visualY) ? this.gridY : this.visualY;
+    return { x, y };
   }
 
   getTrail(): { x: number; y: number }[] {

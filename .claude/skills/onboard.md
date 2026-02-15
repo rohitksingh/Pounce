@@ -117,37 +117,109 @@ This project uses **specialized agents** for different types of work. Here's whe
 
 ## Handoff Workflow
 
-### Simple Changes (Direct Handling)
-For straightforward edits, handle directly without delegating:
-- Single-file tweaks
-- Config changes
-- Small bug fixes
-- Documentation updates
+**CRITICAL: ALWAYS follow this process. Do NOT make code changes directly - EVER.**
 
-### Feature Implementation Process
+### When to Handle Directly (VERY LIMITED)
 
-1. **Planning Phase** (if complex):
-   - Use **tech-architect** for design decisions
-   - Get user approval on approach
+**ONLY handle these tasks directly** - NO code changes allowed:
+- ✅ Reading/exploring code to answer questions
+- ✅ Git operations (status, log, diff, checkout, merge, push)
+- ✅ Running dev server or builds (npm run dev, npm test, etc.)
+- ✅ Answering questions about the codebase
+- ✅ Explaining how things work
 
-2. **Implementation Phase**:
-   - Use **fullstack-developer** for building the feature
-   - Agent implements across all necessary files
-   - Follows existing patterns and conventions
+### When to DELEGATE (ALL CODE CHANGES)
 
-3. **Testing Phase**:
-   - Use **ui-bug-tester** to test the implementation
-   - Identify and report any issues found
+**MANDATORY: Use fullstack-developer agent for ANY code change:**
+- ❗ **Single-line changes** (typos, values, comments, anything)
+- ❗ **Single-file changes** (any edit to any .ts, .js, .css file)
+- ❗ **Multi-file changes** (obviously)
+- ❗ **New files** (creating new components, utilities, etc.)
+- ❗ **Documentation in code** (updating docstrings, inline comments)
+- ❗ **Config changes** (package.json, tsconfig.json, etc.)
+- ❗ **ANY use of Edit or Write tools** on code files
 
-4. **Automation Phase** (if needed):
-   - Use **qa-automation** to write automated tests
-   - Ensures regression prevention
+**Examples that ALL require fullstack-developer:**
+- "Change this color from red to blue" → fullstack-developer
+- "Fix this typo in the comment" → fullstack-developer
+- "Make the pirates bigger" → fullstack-developer
+- "Add animated sprites" → fullstack-developer
+- "Update the README" → fullstack-developer
+- "Change a constant value" → fullstack-developer
+
+**ABSOLUTE RULE:**
+- **NEVER use Edit or Write tools for ANY code changes**
+- **ALWAYS delegate to fullstack-developer for implementation**
+- **If you're thinking about making a change, delegate it**
+
+### Complete Autonomous Workflow
+
+**CRITICAL: User should only be involved at START and FINAL REVIEW**
+
+#### Step 1: User Requests Change
+User provides feedback or feature request
+
+#### Step 2: Implementation
+- **ALWAYS** delegate to **fullstack-developer**
+- **NEVER** implement directly
+- Provide clear context and requirements
+
+#### Step 3: Automated Testing
+- **AUTOMATICALLY** launch **ui-bug-tester** after implementation
+- **DO NOT** ask user to test yet
+- Tester systematically checks all functionality
+
+#### Step 4: Bug Fix Loop (Autonomous)
+**If bugs found:**
+- Send bugs back to **fullstack-developer** to fix
+- **Automatically** re-test with **ui-bug-tester**
+- **Loop until all tests pass**
+- **DO NOT** involve user during this loop
+
+**If no bugs:**
+- Proceed to Step 5
+
+#### Step 5: User Review (ONLY NOW)
+- Present completed, tested work to user
+- Game is ready at dev server URL
+- Wait for user response:
+
+**User says "Looks good":**
+- **AUTOMATICALLY** merge to main
+- Commit changes
+- Push to remote
+- Done!
+
+**User says "I have feedback":**
+- **GO BACK TO STEP 1**
+- Start entire process again
+
+---
+
+### Planning Phase (Optional)
+
+**For complex features:**
+1. Use **tech-architect** for design decisions
+2. Get user approval on approach
+3. Then proceed with implementation workflow above
+
+---
+
+### Test Automation (Optional)
+
+**After feature is merged:**
+- Use **qa-automation** to write automated tests
+- Ensures regression prevention
+- Only when user requests or when appropriate
+
+---
 
 ### Agent Communication
-- When delegating, provide clear context and requirements
+- Provide clear context when delegating
 - Agents have project-scoped memory in `.claude/agent-memory/`
-- Agents can build institutional knowledge over time
+- Agents build institutional knowledge over time
 - Each agent follows their specialized methodology
+- **User is only involved at: REQUEST → FINAL REVIEW → APPROVAL**
 
 ---
 
@@ -182,4 +254,8 @@ For straightforward edits, handle directly without delegating:
 
 **You are now fully onboarded!** 🎮
 
-Use the specialized agents when appropriate, and handle simple tasks directly. Always check existing code patterns before making changes.
+**REMEMBER:**
+- NEVER make code changes directly
+- ALWAYS delegate to fullstack-developer for ANY code modification
+- Only handle: reading code, git operations, running commands, answering questions
+- When in doubt → DELEGATE

@@ -16,7 +16,8 @@
       "Bash(npm test:*)",
       "Bash(lsof:*)",
       "Bash(npx tsc:*)",
-      "Bash(gtimeout 10 npm run dev:*)"
+      "Bash(gtimeout 10 npm run dev:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

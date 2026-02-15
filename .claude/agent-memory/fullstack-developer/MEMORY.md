@@ -36,13 +36,98 @@
 - Config: `/Users/rohit/workspace/Pounce/src/config/GameConfig.ts`
 
 ## Rendering Layers
-- Depth 0: Sea background (tiled sprite)
+- Depth 0.5: Animated waves (multi-layer sine waves)
+- Depth 0.6: Light caustics (underwater shimmer)
+- Depth 0.7: Rising bubble particles
+- Depth 0.8: Treasure sparkle particles
 - Depth 1: Island overlay (tiled sprite with alpha)
 - Depth 2: Grid graphics (captured territory, trail)
 - Depth 3: Power-ups
 - Depth 5: Cats
 - Depth 6: Cat state overlays (freeze/slow visual effects)
 - Depth 10: Mouse sprite
+- Depth 100: UI elements
+
+## Animated Background System (2026-02-15)
+**Location**: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts`
+
+**Four-Layer System**:
+1. **Animated Ocean Waves** - Multi-layer sine wave rendering using Graphics API
+2. **Light Caustics** - Underwater sunlight shimmer effect
+3. **Rising Bubbles** - Particle system floating upward
+4. **Treasure Sparkles** - Golden particle effects for pirate theme
+
+**Implementation Details**:
+- All effects are procedural (no image files)
+- Depth layers: 0.5 (waves), 0.6 (caustics), 0.7 (bubbles), 0.8 (sparkles)
+- Particles use procedurally generated textures via Graphics API
+- Continuous animation driven by time-based sine/cosine functions
+- Performance optimized with 80px caustic grid spacing (reduced from 40px)
+
+**Key Methods**:
+- `createAnimatedBackground()` - Initializes all background layers
+- `createParticleTextures()` - Generates bubble and sparkle textures
+- `updateAnimatedBackground()` - Updates animations each frame
+- `renderAnimatedWaves()` - Draws 3 layers of sine waves
+- `renderLightCaustics()` - Draws animated light patterns with per-cell phase offsets
+- `shutdown()` - Cleanup method to prevent memory leaks
+
+**Procedural Techniques**:
+- Particle texture generation: Use Graphics API then `generateTexture()`
+- Animated waves: Multiple sine waves with different frequencies/speeds
+- Light caustics: Grid-based circles with sine/cosine offsets for organic movement
+
+### Animated Background Bug Fixes (2026-02-15)
+
+**Bug #1: Waves Invisible Due to Depth Layering (FIXED)**
+- **Problem**: Animated waves (depth -1) were hidden behind sea tileSprite (depth 0)
+- **Solution**: Removed seaBackground tileSprite entirely, moved waves to depth 0.5 (above void, below captured territory)
+- **Files Changed**: Removed seaBackground property and all references
+
+**Bug #2: Particle Emitter API Mismatch - Phaser 3.80 (FIXED)**
+- **Problem**: Used old Phaser particle API that doesn't work with Phaser 3.80.1
+- **Old (Wrong)**: `this.bubbleParticles = this.add.particles(0, 0, 'bubble', {config});`
+- **New (Correct)**:
+  ```typescript
+  const emitter = this.add.particles(0, 0, 'bubble');
+  this.bubbleParticles = emitter.createEmitter({config});
+  ```
+- **Solution**: Updated both bubble and sparkle particle emitters to use two-step creation pattern
+- **Added**: Texture existence checks to prevent runtime errors if textures not loaded
+
+**Bug #3: Memory Leak - Particles Not Destroyed (FIXED)**
+- **Problem**: Particle emitters accumulated on each game restart
+- **Solution**: Added `shutdown()` method that destroys particle managers and graphics objects
+- **Implementation**:
+  ```typescript
+  shutdown(): void {
+    if (this.bubbleParticles) {
+      this.bubbleParticles.manager?.destroy();
+    }
+    if (this.sparkleParticles) {
+      this.sparkleParticles.manager?.destroy();
+    }
+    this.waveGraphics?.destroy();
+    this.causticsGraphics?.destroy();
+  }
+  ```
+
+**Bug #4: Excessive Performance Cost (FIXED)**
+- **Problem**: 3,240 trig operations + 600 fills per frame at 40px grid spacing
+- **Solution**: Increased caustic grid spacing from 40px to 80px (reduces to ~810 trig ops + 150 fills)
+- **Result**: 75% reduction in caustic rendering cost
+
+**Bug #5: Caustics Lack Smoothness (FIXED)**
+- **Problem**: All grid cells moved in lockstep, creating unnatural patterns
+- **Solution**: Added per-cell phase offset based on position: `phaseOffset = (x * 0.1 + y * 0.1)`
+- **Implementation**: Apply phase offset to all sine/cosine calculations for organic, non-uniform movement
+
+**Key Insights**:
+- Phaser 3.80+ requires two-step particle emitter creation (manager, then emitter)
+- Always provide `shutdown()` method for scenes with particles/graphics to prevent memory leaks
+- Performance optimization: prefer larger grid spacing over complex calculations
+- Depth layering: positive depths (above void) are visible, negative depths (below void) may be hidden
+- Optional properties: Use `?` for particle emitters that may fail to create
 
 ## Trail Rendering Details
 - Trail width: 3px main line
@@ -123,6 +208,8 @@ GameConfig.powerUps = {
 - **Property conflicts**: Phaser.Sprite has `setState()` - use `setCatState()` instead
 - **Variable initialization**: TypeScript requires definite assignment - initialize x/y in loops
 - **Scene references**: Use `this.scene` not `scene` parameter after constructor
+- **Graphics cleanup**: Always call `graphics.destroy()` after `generateTexture()`
+- **Depth ordering**: Negative depths go behind, positive go in front, order matters
 
 ### Power-Up System Bug Fixes (2026-02-15)
 
@@ -147,3 +234,23 @@ GameConfig.powerUps = {
 - Always save velocity before modifying it for state changes
 - Transitioning between states requires re-enabling physics body
 - Division by zero occurs when restoring from frozen state with zero velocity
+
+## Phaser 3.80+ Particle System API
+**CRITICAL**: Phaser 3.80+ changed the particle emitter API
+
+**OLD API (Pre-3.80) - DO NOT USE**:
+```typescript
+this.particles = this.add.particles(x, y, 'texture', {config});
+```
+
+**NEW API (3.80+) - ALWAYS USE**:
+```typescript
+const manager = this.add.particles(x, y, 'texture');
+this.emitter = manager.createEmitter({config});
+```
+
+**Best Practices**:
+1. Check texture exists before creating particles: `if (this.textures.exists('texture'))`
+2. Make emitter properties optional: `private emitter?: Phaser.GameObjects.Particles.ParticleEmitter`
+3. Always destroy particle managers in shutdown: `emitter.manager?.destroy()`
+4. Use optional chaining when accessing emitters: `this.emitter?.stop()`

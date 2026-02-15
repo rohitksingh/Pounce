@@ -9,7 +9,6 @@ import { FloodFill } from '../utils/FloodFill';
 export class GameScene extends Phaser.Scene {
   private gridManager!: GridManager;
   private gridGraphics!: Phaser.GameObjects.Graphics;
-  private seaBackground!: Phaser.GameObjects.TileSprite;
   private islandOverlay!: Phaser.GameObjects.TileSprite;
   private mouse!: Mouse;
   private cats: Cat[] = [];
@@ -25,21 +24,20 @@ export class GameScene extends Phaser.Scene {
   private powerUpEffectTimer: number = 0;
   private powerUpUIElement: HTMLElement | null = null;
 
+  // Animated background elements
+  private waveGraphics!: Phaser.GameObjects.Graphics;
+  private causticsGraphics!: Phaser.GameObjects.Graphics;
+  private bubbleParticleManager?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private sparkleParticleManager?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private waveTime: number = 0;
+
   constructor() {
     super({ key: 'GameScene' });
   }
 
   create() {
-    // Create tiled sea background
-    this.seaBackground = this.add.tileSprite(
-      0,
-      0,
-      GameConfig.width,
-      GameConfig.height,
-      'sea'
-    );
-    this.seaBackground.setOrigin(0, 0);
-    this.seaBackground.setDepth(0); // Background layer
+    // Create animated background layers
+    this.createAnimatedBackground();
 
     // Create island texture overlay (will be masked by captured territory)
     this.islandOverlay = this.add.tileSprite(
@@ -147,9 +145,8 @@ export class GameScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (this.gameOver) return;
 
-    // Animate sea background
-    this.seaBackground.tilePositionX += 0.2;
-    this.seaBackground.tilePositionY += 0.1;
+    // Update animated background
+    this.updateAnimatedBackground(time, delta);
 
     this.mouse.update(time, delta);
     this.updatePowerUpSystem(delta);
@@ -524,5 +521,200 @@ export class GameScene extends Phaser.Scene {
 
     this.activePowerUpEffect = null;
     this.powerUpEffectTimer = 0;
+  }
+
+  // ===============================
+  // Animated Background System
+  // ===============================
+
+  private createAnimatedBackground(): void {
+    // Create graphics for animated waves (depth 0.5, above void but below captured territory)
+    this.waveGraphics = this.add.graphics();
+    this.waveGraphics.setDepth(0.5);
+
+    // Create graphics for light caustics
+    this.causticsGraphics = this.add.graphics();
+    this.causticsGraphics.setDepth(0.6);
+    this.causticsGraphics.setAlpha(0.2);
+
+    // Create procedural particle textures
+    this.createParticleTextures();
+
+    // Create bubble particle emitter (only if texture exists)
+    if (this.textures.exists('bubble')) {
+      this.bubbleParticleManager = this.add.particles(0, 0, 'bubble', {
+        x: { min: 0, max: GameConfig.width },
+        y: GameConfig.height + 10,
+        lifespan: { min: 3000, max: 6000 },
+        speedY: { min: -30, max: -60 },
+        speedX: { min: -10, max: 10 },
+        scale: { start: 0.3, end: 0 },
+        alpha: { start: 0.4, end: 0 },
+        frequency: 100,
+        quantity: 1,
+        blendMode: Phaser.BlendModes.ADD
+      });
+      this.bubbleParticleManager.setDepth(0.7);
+    }
+
+    // Create sparkle particle emitter (treasure glints) - only if texture exists
+    if (this.textures.exists('sparkle')) {
+      this.sparkleParticleManager = this.add.particles(0, 0, 'sparkle', {
+        x: { min: 0, max: GameConfig.width },
+        y: { min: 0, max: GameConfig.height },
+        lifespan: { min: 1500, max: 3000 },
+        speedX: { min: -5, max: 5 },
+        speedY: { min: -5, max: 5 },
+        scale: { start: 0.4, end: 0 },
+        alpha: { start: 0.6, end: 0 },
+        frequency: 300,
+        quantity: 1,
+        blendMode: Phaser.BlendModes.ADD,
+        tint: 0xFFD700 // Golden treasure color
+      });
+      this.sparkleParticleManager.setDepth(0.8);
+    }
+
+    this.waveTime = 0;
+  }
+
+  private createParticleTextures(): void {
+    // Create bubble texture
+    const bubbleGraphics = this.add.graphics();
+    bubbleGraphics.fillStyle(0x87CEEB, 1);
+    bubbleGraphics.fillCircle(8, 8, 8);
+    bubbleGraphics.lineStyle(2, 0xFFFFFF, 0.5);
+    bubbleGraphics.strokeCircle(8, 8, 8);
+    bubbleGraphics.generateTexture('bubble', 16, 16);
+    bubbleGraphics.destroy();
+
+    // Create sparkle texture (4-pointed star)
+    const sparkleGraphics = this.add.graphics();
+    sparkleGraphics.fillStyle(0xFFFFFF, 1);
+    sparkleGraphics.fillCircle(8, 8, 6);
+
+    // Add star points
+    sparkleGraphics.fillStyle(0xFFFFFF, 0.8);
+    const points = [
+      { x: 8, y: 2 },   // Top
+      { x: 8, y: 14 },  // Bottom
+      { x: 2, y: 8 },   // Left
+      { x: 14, y: 8 },  // Right
+    ];
+    points.forEach(point => {
+      sparkleGraphics.fillCircle(point.x, point.y, 3);
+    });
+
+    sparkleGraphics.generateTexture('sparkle', 16, 16);
+    sparkleGraphics.destroy();
+  }
+
+  private updateAnimatedBackground(_time: number, delta: number): void {
+    this.waveTime += delta * 0.001; // Convert to seconds
+
+    // Render animated waves
+    this.renderAnimatedWaves();
+
+    // Render light caustics
+    this.renderLightCaustics();
+  }
+
+  private renderAnimatedWaves(): void {
+    this.waveGraphics.clear();
+
+    const width = GameConfig.width;
+    const height = GameConfig.height;
+    const waveCount = 3; // Number of wave layers
+
+    // Draw multiple wave layers at different depths
+    for (let layer = 0; layer < waveCount; layer++) {
+      const layerDepth = layer / waveCount;
+      const waveHeight = 20 + layer * 10;
+      const waveFrequency = 0.01 + layer * 0.005;
+      const waveSpeed = 1 + layer * 0.5;
+      const alpha = 0.15 - layer * 0.03;
+
+      // Color gradient from deep blue to lighter blue-green
+      const colors = [
+        0x0A2540, // Deepest ocean
+        0x1E3A5F, // Medium depth
+        0x2E5A7F  // Lighter depth
+      ];
+      const color = colors[layer];
+
+      this.waveGraphics.fillStyle(color, alpha);
+
+      // Draw wave using sine function
+      this.waveGraphics.beginPath();
+      this.waveGraphics.moveTo(0, height);
+
+      for (let x = 0; x <= width; x += 5) {
+        const offset = this.waveTime * waveSpeed;
+        const y1 = Math.sin((x + offset * 100) * waveFrequency) * waveHeight;
+        const y2 = Math.sin((x + offset * 80) * waveFrequency * 1.3 + 1) * waveHeight * 0.7;
+        const y3 = Math.sin((x + offset * 60) * waveFrequency * 0.8 + 2) * waveHeight * 0.5;
+
+        const finalY = height * 0.3 + y1 + y2 + y3 + layerDepth * 50;
+
+        if (x === 0) {
+          this.waveGraphics.moveTo(x, finalY);
+        } else {
+          this.waveGraphics.lineTo(x, finalY);
+        }
+      }
+
+      this.waveGraphics.lineTo(width, height);
+      this.waveGraphics.lineTo(0, height);
+      this.waveGraphics.closePath();
+      this.waveGraphics.fillPath();
+    }
+  }
+
+  private renderLightCaustics(): void {
+    this.causticsGraphics.clear();
+
+    const width = GameConfig.width;
+    const height = GameConfig.height;
+    const gridSize = 80; // Increased from 40 to reduce performance cost (4x fewer cells)
+    const intensity = 0.3;
+
+    // Draw animated light caustics using overlapping circles
+    for (let x = 0; x < width; x += gridSize) {
+      for (let y = 0; y < height; y += gridSize) {
+        // Add per-cell phase offset for smoother, more organic movement
+        const phaseOffset = (x * 0.1 + y * 0.1);
+
+        // Use multiple sine waves to create organic caustic pattern
+        const offset1 = Math.sin((x * 0.02 + this.waveTime * 0.5 + phaseOffset)) * 20;
+        const offset2 = Math.cos((y * 0.02 + this.waveTime * 0.3 + phaseOffset * 0.7)) * 20;
+        const offset3 = Math.sin((x * 0.01 + y * 0.01 + this.waveTime * 0.4 + phaseOffset * 0.5)) * 15;
+
+        const finalX = x + offset1 + offset3;
+        const finalY = y + offset2 - offset3;
+
+        // Calculate alpha based on position to create variation
+        const alphaVariation = Math.sin(x * 0.1 + y * 0.1 + this.waveTime + phaseOffset) * 0.3 + 0.7;
+        const alpha = intensity * alphaVariation;
+
+        // Draw caustic light spot
+        this.causticsGraphics.fillStyle(0x87CEEB, alpha); // Light blue
+        this.causticsGraphics.fillCircle(finalX, finalY, gridSize * 0.6);
+
+        // Add highlight
+        this.causticsGraphics.fillStyle(0xFFFFFF, alpha * 0.5);
+        this.causticsGraphics.fillCircle(finalX, finalY, gridSize * 0.3);
+      }
+    }
+  }
+
+  // Cleanup method to prevent memory leaks
+  shutdown(): void {
+    // Destroy particle emitters
+    this.bubbleParticleManager?.destroy();
+    this.sparkleParticleManager?.destroy();
+
+    // Destroy graphics objects
+    this.waveGraphics?.destroy();
+    this.causticsGraphics?.destroy();
   }
 }

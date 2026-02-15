@@ -41,6 +41,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('[GameScene] Game scene started');
+
     // Create animated background layers
     this.createAnimatedBackground();
 
@@ -74,8 +76,11 @@ export class GameScene extends Phaser.Scene {
     this.events.on('loop-completed', this.handleLoopCompleted, this);
     this.events.on('mouse-hit-trail', this.handleMouseHit, this);
 
-    // Get reference to DOM UI elements
+    // Get reference to DOM UI elements and make them visible
     this.uiElement = document.getElementById('ui-container');
+    if (this.uiElement) {
+      this.uiElement.style.display = 'block';
+    }
     this.powerUpUIElement = document.getElementById('powerup-container');
 
     // Start power-up spawn timer

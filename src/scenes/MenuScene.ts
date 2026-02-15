@@ -7,6 +7,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('[MenuScene] Menu scene started');
     const { width, height } = GameConfig;
 
     // Title
@@ -43,6 +44,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     startButton.on('pointerdown', () => {
+      console.log('[MenuScene] START GAME clicked, transitioning to GameScene');
       this.scene.start('GameScene');
     });
 

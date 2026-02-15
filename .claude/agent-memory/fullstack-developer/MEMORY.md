@@ -7,6 +7,14 @@
 - 7 pirate opponents chase the player and can destroy trails
 - Power-up system adds freeze and slow effects
 
+## Scene Flow & UI Management
+**Scene Order**: BootScene → MenuScene → GameScene
+
+**CRITICAL**: HTML UI container must be hidden by default
+- `/Users/rohit/workspace/Pounce/index.html` - `#ui-container` has `display: none`
+- GameScene shows UI when it starts: `this.uiElement.style.display = 'block'`
+- See `menu-scene-fix.md` for complete documentation
+
 ## Key Architecture Patterns
 
 ### Visual Interpolation System

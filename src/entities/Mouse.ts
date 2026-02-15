@@ -31,7 +31,8 @@ export class Mouse extends Phaser.GameObjects.Sprite {
 
     scene.add.existing(this);
     this.setOrigin(0.5, 0.5);
-    this.setScale(cellSize / 32); // Scale sprite to match cell size
+    this.setScale((cellSize / 32) * 2.5); // Player is larger for visibility
+    this.setTint(0x00ff00); // Green tint to identify as player
 
     this.gridManager = gridManager;
 

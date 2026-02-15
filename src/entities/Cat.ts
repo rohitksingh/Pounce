@@ -17,10 +17,10 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.lastValidX = x;
     this.lastValidY = y;
 
-    // Scale sprite to match cell size
+    // Scale sprite to match cell size (doubled for better visibility)
     const cellSize = GameConfig.cellSize;
     this.setOrigin(0.5, 0.5);
-    this.setScale(cellSize / 32);
+    this.setScale((cellSize / 32) * 2);
 
     // Set random velocity
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);

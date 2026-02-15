@@ -8,7 +8,7 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   private lastValidY: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, gridManager: GridManager) {
-    super(scene, x, y, '');
+    super(scene, x, y, 'pirate');
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -16,6 +16,11 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.gridManager = gridManager;
     this.lastValidX = x;
     this.lastValidY = y;
+
+    // Scale sprite to match cell size (doubled for better visibility)
+    const cellSize = GameConfig.cellSize;
+    this.setOrigin(0.5, 0.5);
+    this.setScale((cellSize / 32) * 2);
 
     // Set random velocity
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
@@ -78,11 +83,5 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
       this.lastValidX = this.x;
       this.lastValidY = this.y;
     }
-  }
-
-  render(graphics: Phaser.GameObjects.Graphics): void {
-    const radius = GameConfig.cellSize * 0.4;
-    graphics.fillStyle(GameConfig.colors.cat, 1);
-    graphics.fillCircle(this.x, this.y, radius);
   }
 }

@@ -8,7 +8,8 @@ import { FloodFill } from '../utils/FloodFill';
 export class GameScene extends Phaser.Scene {
   private gridManager!: GridManager;
   private gridGraphics!: Phaser.GameObjects.Graphics;
-  private catGraphics!: Phaser.GameObjects.Graphics;
+  private seaBackground!: Phaser.GameObjects.TileSprite;
+  private islandOverlay!: Phaser.GameObjects.TileSprite;
   private mouse!: Mouse;
   private cats: Cat[] = [];
   private lives: number = GameConfig.initialLives;
@@ -20,18 +21,39 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Background
-    this.cameras.main.setBackgroundColor(GameConfig.colors.void);
+    // Create tiled sea background
+    this.seaBackground = this.add.tileSprite(
+      0,
+      0,
+      GameConfig.width,
+      GameConfig.height,
+      'sea'
+    );
+    this.seaBackground.setOrigin(0, 0);
+    this.seaBackground.setDepth(0); // Background layer
+
+    // Create island texture overlay (will be masked by captured territory)
+    this.islandOverlay = this.add.tileSprite(
+      0,
+      0,
+      GameConfig.width,
+      GameConfig.height,
+      'island'
+    );
+    this.islandOverlay.setOrigin(0, 0);
+    this.islandOverlay.setAlpha(0); // Start invisible
+    this.islandOverlay.setDepth(1); // Above sea
 
     // Initialize grid
     this.gridManager = new GridManager();
 
     // Create graphics objects
     this.gridGraphics = this.add.graphics();
-    this.catGraphics = this.add.graphics();
+    this.gridGraphics.setDepth(2); // Above background
 
     // Create mouse player
     this.mouse = new Mouse(this, this.gridManager);
+    this.mouse.setDepth(10); // Above everything except UI
 
     // Spawn cats in VOID area
     this.spawnCats();
@@ -43,10 +65,12 @@ export class GameScene extends Phaser.Scene {
     // Create UI
     this.uiText = this.add.text(10, 10, '', {
       fontSize: '20px',
-      color: '#ecf0f1',
-      backgroundColor: '#000000',
-      padding: { x: 10, y: 5 }
+      color: '#FFD700',
+      backgroundColor: '#1A252F',
+      padding: { x: 10, y: 5 },
+      fontStyle: 'bold'
     });
+    this.uiText.setDepth(100); // UI always on top
 
     // Render initial grid
     this.renderGrid();
@@ -77,16 +101,18 @@ export class GameScene extends Phaser.Scene {
     const text = this.add.text(
       GameConfig.width / 2,
       GameConfig.height / 2,
-      'GAME OVER\n\nClick to Restart',
+      '☠ WALK THE PLANK! ☠\n\nClick to Restart',
       {
         fontSize: '48px',
-        color: '#e74c3c',
+        color: '#E74C3C',
         align: 'center',
-        backgroundColor: '#000000',
-        padding: { x: 20, y: 20 }
+        backgroundColor: '#1A1A1A',
+        padding: { x: 20, y: 20 },
+        fontStyle: 'bold'
       }
     );
     text.setOrigin(0.5);
+    text.setDepth(200);
     text.setInteractive({ useHandCursor: true });
     text.on('pointerdown', () => this.scene.restart());
   }
@@ -96,16 +122,18 @@ export class GameScene extends Phaser.Scene {
     const text = this.add.text(
       GameConfig.width / 2,
       GameConfig.height / 2,
-      `YOU WIN!\n\nCaptured: ${percentage.toFixed(1)}%\n\nClick to Play Again`,
+      `⚓ TREASURE SECURED! ⚓\n\nCaptured: ${percentage.toFixed(1)}%\n\nClick to Play Again`,
       {
         fontSize: '48px',
-        color: '#2ecc71',
+        color: '#FFD700',
         align: 'center',
-        backgroundColor: '#000000',
-        padding: { x: 20, y: 20 }
+        backgroundColor: '#1A252F',
+        padding: { x: 20, y: 20 },
+        fontStyle: 'bold'
       }
     );
     text.setOrigin(0.5);
+    text.setDepth(200);
     text.setInteractive({ useHandCursor: true });
     text.on('pointerdown', () => this.scene.restart());
   }
@@ -113,10 +141,13 @@ export class GameScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (this.gameOver) return;
 
+    // Animate sea background
+    this.seaBackground.tilePositionX += 0.2;
+    this.seaBackground.tilePositionY += 0.1;
+
     this.mouse.update(time, delta);
     this.checkCollisions();
     this.renderGrid();
-    this.renderCats();
     this.updateUI();
   }
 
@@ -180,13 +211,9 @@ export class GameScene extends Phaser.Scene {
       const offsetX = Phaser.Math.Between(-100, 100);
       const offsetY = Phaser.Math.Between(-100, 100);
       const cat = new Cat(this, centerX + offsetX, centerY + offsetY, this.gridManager);
+      cat.setDepth(5); // Below mouse, above grid
       this.cats.push(cat);
     }
-  }
-
-  private renderCats(): void {
-    this.catGraphics.clear();
-    this.cats.forEach(cat => cat.render(this.catGraphics));
   }
 
   private renderGrid(): void {
@@ -195,31 +222,59 @@ export class GameScene extends Phaser.Scene {
     const grid = this.gridManager.getGrid();
     const cellSize = GameConfig.cellSize;
 
+    // Create a render texture for island masking
+    let hasCaptured = false;
+
     for (let y = 0; y < this.gridManager.getRows(); y++) {
       for (let x = 0; x < this.gridManager.getCols(); x++) {
         const state = grid[y][x];
-        let color: number;
 
         switch (state) {
           case CellState.CAPTURED:
-            color = GameConfig.colors.captured;
+            // Draw island overlay with wooden deck color
+            this.gridGraphics.fillStyle(0xD4A574, 0.9);
+            this.gridGraphics.fillRect(
+              x * cellSize,
+              y * cellSize,
+              cellSize,
+              cellSize
+            );
+            // Add subtle grid lines for deck planks
+            this.gridGraphics.lineStyle(1, 0xB8935C, 0.3);
+            this.gridGraphics.strokeRect(
+              x * cellSize,
+              y * cellSize,
+              cellSize,
+              cellSize
+            );
+            hasCaptured = true;
             break;
           case CellState.TRAIL:
-            color = GameConfig.colors.trail;
+            // Draw trail as glowing yellow line
+            this.gridGraphics.fillStyle(GameConfig.colors.trail, 0.9);
+            this.gridGraphics.fillRect(
+              x * cellSize,
+              y * cellSize,
+              cellSize,
+              cellSize
+            );
+            // Add glow effect
+            this.gridGraphics.lineStyle(2, 0xFFD700, 0.5);
+            this.gridGraphics.strokeRect(
+              x * cellSize,
+              y * cellSize,
+              cellSize,
+              cellSize
+            );
             break;
           case CellState.VOID:
           default:
-            continue; // Skip rendering void (background)
+            continue; // Skip rendering void (sea background shows through)
         }
-
-        this.gridGraphics.fillStyle(color, 0.7);
-        this.gridGraphics.fillRect(
-          x * cellSize,
-          y * cellSize,
-          cellSize,
-          cellSize
-        );
       }
     }
+
+    // Show/hide island overlay based on captured territory
+    this.islandOverlay.setAlpha(hasCaptured ? 0.2 : 0);
   }
 }

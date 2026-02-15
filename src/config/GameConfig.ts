@@ -8,14 +8,14 @@ export const GameConfig = {
   gridRows: 60,
   cellSize: 10,
 
-  // Colors
+  // Colors (Pirate Theme)
   colors: {
-    void: 0x1a1a1a,        // Dark gray background
-    captured: 0x2ecc71,     // Green territory
-    trail: 0xf1c40f,        // Yellow trail (Styx)
-    mouse: 0x3498db,        // Blue mouse
-    cat: 0xe74c3c,          // Red cat
-    border: 0xecf0f1,       // Light gray border
+    void: 0x1E3A5F,        // Deep sea blue
+    captured: 0xD4A574,     // Deck/island wood
+    trail: 0xF1C40F,        // Golden treasure trail
+    mouse: 0xFFA500,        // Orange cat player
+    cat: 0x2C3E50,          // Dark pirate
+    border: 0x8B7355,       // Brown border
   },
 
   // Game settings

@@ -15,6 +15,50 @@
 - GameScene shows UI when it starts: `this.uiElement.style.display = 'block'`
 - See `menu-scene-fix.md` for complete documentation
 
+## Player Spawn & Starting Island (T022 - 2026-02-15)
+**Location**: Center of map (40, 30) on a 7x7 captured island
+- **GridManager**: `initializeCenterIsland()` creates starting island (radius=3)
+- **Mouse**: Spawns at `Math.floor(gridCols/2)`, `Math.floor(gridRows/2)`
+- **Island Size**: 7x7 cells (70x70px) - larger than player sprite
+- **Initial Territory**: ~5.5% (border + center island)
+- **Cat Spawning** (T025): Cats avoid center island when spawning
+- See `T022-center-island-spawn.md` for complete details
+
+## Release Versioning System (T023 - 2026-02-15)
+**Location**: `/Users/rohit/workspace/Pounce/scripts/create-release.sh`
+
+**Comprehensive versioning with semantic versioning (SemVer)**:
+1. **package.json** - Version number (currently 1.0.0)
+2. **Git Tags** - Annotated tags (v1.0.0, v1.1.0, etc.)
+3. **GitHub Releases** - Created with release notes
+4. **CHANGELOG.md** - Auto-updated with each release
+
+**Release Process**:
+- Run: `./scripts/create-release.sh` from main branch
+- Select bump type: patch (x.x.1), minor (x.1.0), major (1.0.0), or custom
+- Enter release notes (multi-line, Ctrl+D to finish)
+- Script automatically commits, tags, pushes, and creates GitHub Release
+
+**Version Semantics**:
+- **Patch**: Bug fixes, small changes (1.0.0 → 1.0.1)
+- **Minor**: New features, backward compatible (1.0.0 → 1.1.0)
+- **Major**: Breaking changes (1.0.0 → 2.0.0)
+
+**Files**:
+- `/Users/rohit/workspace/Pounce/scripts/create-release.sh` - Release automation
+- `/Users/rohit/workspace/Pounce/CHANGELOG.md` - Release history
+- `/Users/rohit/workspace/Pounce/package.json` - Version number
+
+## Version Display (T024 - 2026-02-15)
+**Location**: Bottom right corner of the page
+
+**Implementation**:
+- Static HTML div with version number: `<div id="version-display">v1.0.0</div>`
+- Styled with gold color (#FFD700) and 0.7 opacity for subtle appearance
+- Fixed positioning in bottom right (10px from edges)
+- Manual update required when creating new releases
+- **Files**: `/Users/rohit/workspace/Pounce/index.html` - Contains version display
+
 ## Key Architecture Patterns
 
 ### Visual Interpolation System

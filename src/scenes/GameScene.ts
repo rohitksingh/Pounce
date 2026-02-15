@@ -313,6 +313,11 @@ export class GameScene extends Phaser.Scene {
     const rows = this.gridManager.getRows();
     const minDistance = 50; // Minimum distance between cats
 
+    // Center island parameters (7x7 area from T022)
+    const centerX = Math.floor(cols / 2); // Grid cell coordinate
+    const centerY = Math.floor(rows / 2); // Grid cell coordinate
+    const islandRadius = 3; // Radius in grid cells
+
     for (let i = 0; i < GameConfig.initialCats; i++) {
       let x: number = cellSize * 10;
       let y: number = cellSize * 10;
@@ -320,10 +325,24 @@ export class GameScene extends Phaser.Scene {
       let attempts = 0;
 
       // Try to find a valid position that's not too close to other cats
-      while (!validPosition && attempts < 50) {
+      while (!validPosition && attempts < 100) {
         // Spawn in VOID area (not near edges)
         x = Phaser.Math.Between(cellSize * 5, (cols - 5) * cellSize);
         y = Phaser.Math.Between(cellSize * 5, (rows - 5) * cellSize);
+
+        // Convert pixel coordinates to grid coordinates
+        const gridX = Math.floor(x / cellSize);
+        const gridY = Math.floor(y / cellSize);
+
+        // Check if position is on center island (avoid spawning there)
+        const onCenterIsland =
+          Math.abs(gridX - centerX) <= islandRadius &&
+          Math.abs(gridY - centerY) <= islandRadius;
+
+        if (onCenterIsland) {
+          attempts++;
+          continue; // Try another position
+        }
 
         // Check distance from other cats
         validPosition = true;
@@ -336,6 +355,14 @@ export class GameScene extends Phaser.Scene {
         }
 
         attempts++;
+      }
+
+      // Fallback if we couldn't find a valid position
+      if (attempts >= 100) {
+        console.warn(`[GameScene] Could not find valid spawn for cat ${i}, using fallback position`);
+        // Spawn near edges away from center
+        x = i * 80 + 50;
+        y = 50;
       }
 
       // Create cat

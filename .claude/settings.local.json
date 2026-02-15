@@ -17,7 +17,13 @@
       "Bash(lsof:*)",
       "Bash(npx tsc:*)",
       "Bash(gtimeout 10 npm run dev:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(chmod:*)",
+      "Bash(/Users/rohit/workspace/Pounce/scripts/notify-slack.sh:*)",
+      "Bash(/Users/rohit/workspace/Pounce/scripts/test-notification.sh)",
+      "Bash(exit:*)",
+      "Bash(ls:*)",
+      "Bash(shellcheck:*)"
     ]
   }
 }

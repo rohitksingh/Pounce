@@ -189,6 +189,7 @@ User provides feedback or feature request
 #### Step 5: User Review (ONLY NOW)
 - Present completed, tested work to user
 - **Show ticket number and title**: `[T###] Feature Title`
+- **Send Slack notification**: Run `./scripts/notify-slack.sh T### "Title" ready PORT`
 - Game is ready at dev server URL
 - Wait for user response:
 

@@ -42,6 +42,49 @@ npm run build
 npm run preview
 ```
 
+### Slack Notifications (Optional)
+
+Enable Slack notifications for development updates:
+
+1. **Get a Slack Webhook URL**
+   - Go to https://api.slack.com/messaging/webhooks
+   - Create a new webhook for your workspace
+   - Copy the webhook URL
+
+2. **Configure Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your SLACK_WEBHOOK_URL
+   ```
+
+3. **Send Notifications**
+   ```bash
+   ./scripts/notify-slack.sh T006 "Feature Name" ready
+   ```
+
+   **Usage:**
+   ```
+   ./scripts/notify-slack.sh [TICKET] [TITLE] [STATUS] [PORT]
+   ```
+
+   **Status Options:**
+   - `ready` - Ready for Review (✅)
+   - `progress` - In Progress (🚧)
+   - `complete` - Completed (🎉)
+   - `blocked` - Blocked (🚫)
+
+   **Examples:**
+   ```bash
+   # Feature ready for review
+   ./scripts/notify-slack.sh T006 "Slack Notifications" ready
+
+   # Work in progress
+   ./scripts/notify-slack.sh T007 "New Feature" progress
+
+   # Custom port
+   ./scripts/notify-slack.sh T008 "Feature" ready 3000
+   ```
+
 ## Tech Stack
 
 - **Game Framework**: Phaser 3.80+

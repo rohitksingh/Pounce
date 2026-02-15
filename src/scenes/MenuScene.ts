@@ -50,7 +50,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Instructions
     const instructions = this.add.text(width / 2, height - 80,
-      'Use WASD or Arrow Keys to move\nCapture 75% of territory to win!', {
+      'Use WASD or Arrow Keys to move\nCapture 95% of territory to win!', {
       fontSize: '16px',
       color: '#95a5a6',
       align: 'center'

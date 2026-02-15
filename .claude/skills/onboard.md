@@ -40,7 +40,7 @@ public/assets/           # Sprites, backgrounds, textures
 
 ### Core Gameplay
 - **Player**: Mouse character (WASD/Arrow keys)
-- **Objective**: Capture 75% of the playing field
+- **Objective**: Capture 95% of the playing field
 - **Mechanics**:
   - Draw trails in the void (sea)
   - Close loops to capture territory (flood fill algorithm)
@@ -255,11 +255,15 @@ User provides feedback or feature request
 - [T005] Procedural animated background
 - [T006] Slack webhook notifications
 - [T008] Swaying palm trees on captured territory
+- [T009] Bug fixes - palm tree rearrangement & power-up collision
+- [T010] GitHub Pages deployment with GitHub Actions
+- [T011] MenuScene deployment fix
+- [T013] Speed boost when capturing pirates
 
 ### Ticket Numbering
 - Format: T### (e.g., T001, T002, T003)
 - Increment sequentially
-- Next ticket: T009
+- Next ticket: T014
 
 ---
 

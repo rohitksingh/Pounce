@@ -3,9 +3,16 @@
 ## Project Structure
 - Main game file: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts`
 - Entities: `/Users/rohit/workspace/Pounce/src/entities/` (Mouse.ts, Cat.ts, PowerUp.ts)
+- Flood fill logic: `/Users/rohit/workspace/Pounce/src/utils/FloodFill.ts` ✅ VERIFIED (T021)
+- Grid manager: `/Users/rohit/workspace/Pounce/src/utils/GridManager.ts`
 - HTML entry: `/Users/rohit/workspace/Pounce/index.html`
 - Config: `/Users/rohit/workspace/Pounce/src/config/GameConfig.ts`
-- Tech stack: Phaser 3 game engine, TypeScript, Vite
+- Tests:
+  - `/Users/rohit/workspace/Pounce/tests/unit/FloodFill.test.ts` (11 tests) ✅
+  - `/Users/rohit/workspace/Pounce/tests/unit/GridManager.test.ts` (11 tests) ✅
+  - `/Users/rohit/workspace/Pounce/tests/integration/CollisionDetection.test.ts` (4 tests) ✅
+- Tech stack: Phaser 3 game engine, TypeScript, Vite, Vitest
+- Test status: 26/26 passing
 
 ## Common Issues & Patterns
 
@@ -71,6 +78,26 @@
 - [ ] Check caustics don't create visual artifacts on overlap
 - [ ] Verify background visible in VOID areas, not obstructing captured territory
 - [ ] Test with freeze/slow power-ups active
+
+## QIX/Volfied Flood Fill Algorithm (DEFINITIVE FIX - T021) ✅
+- **Core Mechanic**: Capture ENCLOSED area when loop completes, NOT outer area
+- **Algorithm Type**: Topological detection using adjacency to OLD captured territory
+- **Implementation**: `isAdjacentToOldTerritory()` method (lines 110-144)
+- **Key Innovation**: Distinguish OLD territory (border + previous captures) from NEW trail
+  - Creates Set from trail for O(1) lookup performance
+  - Checks if VOID regions are adjacent to CAPTURED cells NOT in trail
+  - Outer ocean = LARGEST region adjacent to old territory
+  - Enclosed regions = NOT adjacent to old territory (surrounded by new trail)
+- **Why This Works**:
+  - Outer ocean ALWAYS connects to where player started (old territory)
+  - Enclosed regions NEVER connect to old territory (surrounded by new trail)
+  - Works at ALL territory percentages (0% to 95%)
+  - No size heuristics needed - pure topological detection
+- **Critical Bug Fixed**: 50% territory bug where small outer ocean was incorrectly filled
+- **Test Coverage**: 11/11 tests passing, all critical scenarios verified
+- **Performance**: O(n) time, O(n) space, no heuristics
+- **Location**: `/Users/rohit/workspace/Pounce/src/utils/FloodFill.ts`
+- **Detailed Documentation**: See `flood-fill-testing.md` in agent memory
 
 ## Known Phaser API Changes
 - **Particle System**: API changed in Phaser 3.60+

@@ -42,6 +42,8 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     console.log('[GameScene] Game scene started');
+    console.log(`[GameScene] Win condition: ${GameConfig.winPercentage}% territory`);
+    console.log(`[GameScene] Grid size: ${GameConfig.gridCols}x${GameConfig.gridRows} = ${GameConfig.gridCols * GameConfig.gridRows} cells`);
 
     // Create animated background layers
     this.createAnimatedBackground();
@@ -117,7 +119,10 @@ export class GameScene extends Phaser.Scene {
 
     // Check win condition
     const percentage = this.gridManager.getPercentageCaptured();
+    console.log(`[GameScene] Territory captured: ${percentage.toFixed(2)}% (win threshold: ${GameConfig.winPercentage}%)`);
+
     if (percentage >= GameConfig.winPercentage) {
+      console.log(`[GameScene] WIN CONDITION MET! ${percentage.toFixed(2)}% >= ${GameConfig.winPercentage}%`);
       this.gameOver = true;
       this.showWin();
     }

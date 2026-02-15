@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
 import { Mouse } from '../entities/Mouse';
-import { Cat } from '../entities/Cat';
+import { Cat, CatState } from '../entities/Cat';
+import { PowerUp, PowerUpType } from '../entities/PowerUp';
 import { FloodFill } from '../utils/FloodFill';
 
 export class GameScene extends Phaser.Scene {
@@ -12,10 +13,17 @@ export class GameScene extends Phaser.Scene {
   private islandOverlay!: Phaser.GameObjects.TileSprite;
   private mouse!: Mouse;
   private cats: Cat[] = [];
+  private powerUps: PowerUp[] = [];
   private lives: number = GameConfig.initialLives;
   private gameOver: boolean = false;
   private uiElement: HTMLElement | null = null;
   private lastRenderedTrailLength: number = 0;
+
+  // Power-up system state
+  private powerUpSpawnTimer: number = 0;
+  private activePowerUpEffect: PowerUpType | null = null;
+  private powerUpEffectTimer: number = 0;
+  private powerUpUIElement: HTMLElement | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -63,8 +71,12 @@ export class GameScene extends Phaser.Scene {
     this.events.on('loop-completed', this.handleLoopCompleted, this);
     this.events.on('mouse-hit-trail', this.handleMouseHit, this);
 
-    // Get reference to DOM UI element
+    // Get reference to DOM UI elements
     this.uiElement = document.getElementById('ui-container');
+    this.powerUpUIElement = document.getElementById('powerup-container');
+
+    // Start power-up spawn timer
+    this.powerUpSpawnTimer = GameConfig.powerUps.spawnInterval;
 
     // Render initial grid
     this.renderGrid();
@@ -140,7 +152,9 @@ export class GameScene extends Phaser.Scene {
     this.seaBackground.tilePositionY += 0.1;
 
     this.mouse.update(time, delta);
+    this.updatePowerUpSystem(delta);
     this.checkCollisions();
+    this.checkPowerUpCollection();
     this.renderGrid();
     this.updateUI();
   }
@@ -148,7 +162,20 @@ export class GameScene extends Phaser.Scene {
   private updateUI(): void {
     const percentage = this.gridManager.getPercentageCaptured();
     if (this.uiElement) {
-      this.uiElement.textContent = `Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives}`;
+      this.uiElement.textContent = `Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives} | Pirates: ${this.cats.length}`;
+    }
+
+    // Update power-up UI
+    if (this.powerUpUIElement) {
+      if (this.activePowerUpEffect && this.powerUpEffectTimer > 0) {
+        const secondsLeft = Math.ceil(this.powerUpEffectTimer / 1000);
+        const effectName = this.activePowerUpEffect === PowerUpType.FREEZE ? 'FROZEN' : 'SLOWED';
+        const icon = this.activePowerUpEffect === PowerUpType.FREEZE ? '❄' : '⚓';
+        this.powerUpUIElement.textContent = `${icon} ${effectName}: ${secondsLeft}s`;
+        this.powerUpUIElement.style.display = 'block';
+      } else {
+        this.powerUpUIElement.style.display = 'none';
+      }
     }
   }
 
@@ -251,13 +278,37 @@ export class GameScene extends Phaser.Scene {
 
   private spawnCats(): void {
     const cellSize = GameConfig.cellSize;
-    const centerX = (this.gridManager.getCols() / 2) * cellSize;
-    const centerY = (this.gridManager.getRows() / 2) * cellSize;
+    const cols = this.gridManager.getCols();
+    const rows = this.gridManager.getRows();
+    const minDistance = 50; // Minimum distance between cats
 
     for (let i = 0; i < GameConfig.initialCats; i++) {
-      const offsetX = Phaser.Math.Between(-100, 100);
-      const offsetY = Phaser.Math.Between(-100, 100);
-      const cat = new Cat(this, centerX + offsetX, centerY + offsetY, this.gridManager);
+      let x: number = cellSize * 10;
+      let y: number = cellSize * 10;
+      let validPosition = false;
+      let attempts = 0;
+
+      // Try to find a valid position that's not too close to other cats
+      while (!validPosition && attempts < 50) {
+        // Spawn in VOID area (not near edges)
+        x = Phaser.Math.Between(cellSize * 5, (cols - 5) * cellSize);
+        y = Phaser.Math.Between(cellSize * 5, (rows - 5) * cellSize);
+
+        // Check distance from other cats
+        validPosition = true;
+        for (const existingCat of this.cats) {
+          const distance = Phaser.Math.Distance.Between(x, y, existingCat.x, existingCat.y);
+          if (distance < minDistance) {
+            validPosition = false;
+            break;
+          }
+        }
+
+        attempts++;
+      }
+
+      // Create cat
+      const cat = new Cat(this, x, y, this.gridManager);
       cat.setDepth(5); // Below mouse, above grid
       this.cats.push(cat);
     }
@@ -362,5 +413,116 @@ export class GameScene extends Phaser.Scene {
     // Draw main trail line
     this.gridGraphics.lineStyle(trailWidth, GameConfig.colors.trail, 1.0);
     drawTrailPath();
+  }
+
+  private updatePowerUpSystem(delta: number): void {
+    // Update spawn timer
+    this.powerUpSpawnTimer -= delta;
+    if (this.powerUpSpawnTimer <= 0 && this.powerUps.length < GameConfig.powerUps.maxActive) {
+      this.spawnPowerUp();
+      this.powerUpSpawnTimer = GameConfig.powerUps.spawnInterval;
+    }
+
+    // Update active effect timer
+    if (this.activePowerUpEffect && this.powerUpEffectTimer > 0) {
+      this.powerUpEffectTimer -= delta;
+
+      if (this.powerUpEffectTimer <= 0) {
+        // Effect expired - restore cats to normal
+        this.endPowerUpEffect();
+      }
+    }
+  }
+
+  private spawnPowerUp(): void {
+    const cellSize = GameConfig.cellSize;
+    const cols = this.gridManager.getCols();
+    const rows = this.gridManager.getRows();
+
+    // Find a random VOID position
+    let x: number = 0;
+    let y: number = 0;
+    let attempts = 0;
+    let foundValidPosition = false;
+
+    while (!foundValidPosition && attempts < 100) {
+      const gridX = Phaser.Math.Between(10, cols - 10);
+      const gridY = Phaser.Math.Between(10, rows - 10);
+
+      if (this.gridManager.getCellState(gridX, gridY) === CellState.VOID) {
+        x = gridX * cellSize + cellSize / 2;
+        y = gridY * cellSize + cellSize / 2;
+
+        // Make sure it's not too close to mouse
+        const mousePos = this.mouse.getGridPosition();
+        const mouseX = mousePos.x * cellSize + cellSize / 2;
+        const mouseY = mousePos.y * cellSize + cellSize / 2;
+        const distance = Phaser.Math.Distance.Between(x, y, mouseX, mouseY);
+
+        if (distance > cellSize * 5) {
+          foundValidPosition = true;
+          break;
+        }
+      }
+
+      attempts++;
+    }
+
+    if (!foundValidPosition) return;
+
+    // Random power-up type
+    const type = Phaser.Math.Between(0, 1) === 0 ? PowerUpType.FREEZE : PowerUpType.SLOW;
+    const powerUp = new PowerUp(this, x, y, type);
+    this.powerUps.push(powerUp);
+  }
+
+  private checkPowerUpCollection(): void {
+    const mousePos = this.mouse.getGridPosition();
+    const cellSize = GameConfig.cellSize;
+    const mouseX = mousePos.x * cellSize + cellSize / 2;
+    const mouseY = mousePos.y * cellSize + cellSize / 2;
+    const collectionRadius = cellSize * 1.0; // Reduced from 2.0 to match visual size
+
+    for (let i = this.powerUps.length - 1; i >= 0; i--) {
+      const powerUp = this.powerUps[i];
+      const distance = Phaser.Math.Distance.Between(mouseX, mouseY, powerUp.x, powerUp.y);
+
+      if (distance < collectionRadius) {
+        // Collect power-up
+        this.collectPowerUp(powerUp);
+        this.powerUps.splice(i, 1);
+        // Only collect one power-up per frame
+        break;
+      }
+    }
+  }
+
+  private collectPowerUp(powerUp: PowerUp): void {
+    // End any existing effect first
+    if (this.activePowerUpEffect) {
+      this.endPowerUpEffect();
+    }
+
+    // Apply new effect
+    this.activePowerUpEffect = powerUp.type;
+    this.powerUpEffectTimer = GameConfig.powerUps.effectDuration;
+
+    // Apply effect to all cats
+    if (powerUp.type === PowerUpType.FREEZE) {
+      this.cats.forEach(cat => cat.setCatState(CatState.FROZEN));
+    } else if (powerUp.type === PowerUpType.SLOW) {
+      this.cats.forEach(cat => cat.setCatState(CatState.SLOWED));
+    }
+
+    // Destroy power-up with animation
+    powerUp.destroy();
+  }
+
+  private endPowerUpEffect(): void {
+    // Restore all cats to normal state
+    this.cats.forEach(cat => cat.setCatState(CatState.NORMAL));
+
+    this.activePowerUpEffect = null;
+    this.powerUpEffectTimer = 0;
   }
 }

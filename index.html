@@ -31,6 +31,22 @@
         min-width: 300px;
         text-align: center;
       }
+      #powerup-container {
+        background: linear-gradient(135deg, #2C3E50, #34495E);
+        color: #ECF0F1;
+        padding: 8px 16px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 5px;
+        border: 2px solid #3498DB;
+        text-align: center;
+        display: none;
+        animation: pulse 0.5s ease-in-out infinite alternate;
+      }
+      @keyframes pulse {
+        from { transform: scale(1); }
+        to { transform: scale(1.05); }
+      }
       #game-container {
         display: flex;
         justify-content: center;
@@ -41,6 +57,7 @@
   <body>
     <div id="app-wrapper">
       <div id="ui-container">Territory: 0.0% | Lives: 3</div>
+      <div id="powerup-container"></div>
       <div id="game-container"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>

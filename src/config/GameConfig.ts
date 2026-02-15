@@ -19,11 +19,20 @@ export const GameConfig = {
   },
 
   // Game settings
-  initialCats: 2,
+  initialCats: 7,
   mouseSpeed: 100,          // pixels per second
   catSpeed: 80,
   winPercentage: 75,        // % of territory to win
   initialLives: 3,
+
+  // Power-up settings
+  powerUps: {
+    maxActive: 3,             // Max power-ups on field at once
+    spawnInterval: 10000,     // ms between spawn attempts
+    effectDuration: 5000,     // ms that effects last
+    freezeSpeedMultiplier: 0, // Cats don't move when frozen
+    slowSpeedMultiplier: 0.5, // Cats move at 50% speed when slowed
+  },
 
   // Physics
   physics: {

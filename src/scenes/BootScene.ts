@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { GameConfig } from '../config/GameConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -66,7 +65,7 @@ export class BootScene extends Phaser.Scene {
     const seaSize = 256;
     const seaTexture = this.add.graphics();
     // Blue gradient
-    const gradient = seaTexture.fillGradientStyle(0x1E3A5F, 0x1E3A5F, 0x2C5F8D, 0x2C5F8D, 1, 1, 1, 1);
+    seaTexture.fillGradientStyle(0x1E3A5F, 0x1E3A5F, 0x2C5F8D, 0x2C5F8D, 1, 1, 1, 1);
     seaTexture.fillRect(0, 0, seaSize, seaSize);
     // Add some wave lines
     seaTexture.lineStyle(2, 0x3498DB, 0.3);

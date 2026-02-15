@@ -304,6 +304,10 @@ export class GameScene extends Phaser.Scene {
     if (this.lives <= 0) {
       this.gameOver = true;
       this.showGameOver();
+    } else {
+      // Respawn at random captured location
+      this.mouse.respawn();
+      console.log(`[GameScene] Player respawned. Lives remaining: ${this.lives}`);
     }
   }
 

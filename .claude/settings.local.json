@@ -44,7 +44,12 @@
       "Bash(test:*)",
       "Bash(kill:*)",
       "Bash(node -p:*)",
-      "Bash(git -C /Users/rohit/workspace/Pounce status)"
+      "Bash(git -C /Users/rohit/workspace/Pounce status)",
+      "Bash(git tag:*)",
+      "Bash(gh release view:*)",
+      "Bash(brew install:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh release create:*)"
     ]
   }
 }

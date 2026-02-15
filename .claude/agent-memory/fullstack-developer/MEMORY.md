@@ -15,14 +15,23 @@
 - GameScene shows UI when it starts: `this.uiElement.style.display = 'block'`
 - See `menu-scene-fix.md` for complete documentation
 
-## Player Spawn & Starting Island (T022 - 2026-02-15)
-**Location**: Center of map (40, 30) on a 7x7 captured island
-- **GridManager**: `initializeCenterIsland()` creates starting island (radius=3)
-- **Mouse**: Spawns at `Math.floor(gridCols/2)`, `Math.floor(gridRows/2)`
-- **Island Size**: 7x7 cells (70x70px) - larger than player sprite
+## Player Spawn System
+
+### Starting Island (T022 - 2026-02-15)
+- **GridManager**: `initializeCenterIsland()` creates 7x7 starting island (radius=3)
+- **Island Size**: 7x7 cells (70x70px) at center of map
 - **Initial Territory**: ~5.5% (border + center island)
 - **Cat Spawning** (T025): Cats avoid center island when spawning
-- See `T022-center-island-spawn.md` for complete details
+
+### Random Spawn (T026 - 2026-02-15)
+**Game Start**: Player spawns at random captured location (not fixed center)
+**After Death**: Player respawns at random captured location
+
+- **GridManager**: `getRandomCapturedCell()` - returns random captured cell with 2-cell safety margin
+- **Mouse Constructor**: Uses random spawn from GridManager
+- **Mouse.respawn()**: Teleports to random captured cell, clears trail, resets direction
+- **GameScene**: Calls `mouse.respawn()` when player loses life but still has lives remaining
+- See `T026-random-spawn.md` for complete details
 
 ## Release Versioning System (T023 - 2026-02-15)
 **Location**: `/Users/rohit/workspace/Pounce/scripts/create-release.sh`

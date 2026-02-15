@@ -77,3 +77,9 @@ coverage.xml
 *.bak
 *.swp
 .cache/
+
+# Vercel
+.vercel
+
+# Test cache
+.vitest-cache

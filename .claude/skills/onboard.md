@@ -156,13 +156,20 @@ This project uses **specialized agents** for different types of work. Here's whe
 
 **CRITICAL: User should only be involved at START and FINAL REVIEW**
 
-#### Step 1: User Requests Change
+#### Step 1: User Requests Change & Create Ticket
 User provides feedback or feature request
+
+**Create Ticket:**
+- Assign ticket number: `T###` (e.g., T001, T002)
+- Create clear title (e.g., "Add freeze power-up system")
+- Format: `[T###] Title`
+- Track in all communications and commits
 
 #### Step 2: Implementation
 - **ALWAYS** delegate to **fullstack-developer**
 - **NEVER** implement directly
 - Provide clear context and requirements
+- **Include ticket number in prompt**: `[T###] Feature description`
 
 #### Step 3: Automated Testing
 - **AUTOMATICALLY** launch **ui-bug-tester** after implementation
@@ -181,17 +188,20 @@ User provides feedback or feature request
 
 #### Step 5: User Review (ONLY NOW)
 - Present completed, tested work to user
+- **Show ticket number and title**: `[T###] Feature Title`
 - Game is ready at dev server URL
 - Wait for user response:
 
 **User says "Looks good":**
 - **AUTOMATICALLY** merge to main
-- Commit changes
+- Commit with ticket number: `feat: [T###] Feature title`
 - Push to remote
+- **Mark ticket as complete**
 - Done!
 
 **User says "I have feedback":**
 - **GO BACK TO STEP 1**
+- Keep same ticket number
 - Start entire process again
 
 ---
@@ -236,9 +246,17 @@ User provides feedback or feature request
 - Current: `release`
 - Main: `main`
 
-### Current Session Changes
-- Pirate (Cat enemy) sprites scaled to 2x size
-- Mouse (Player) sprites scaled to 2.5x size with green tint for visibility
+### Recent Completed Tickets
+- [T001] Sprite visibility improvements
+- [T002] UI improvements and smooth trail rendering
+- [T003] Animated cat sprites integration
+- [T004] Power-up system (freeze & slow)
+- [T005] Procedural animated background
+
+### Ticket Numbering
+- Format: T### (e.g., T001, T002, T003)
+- Increment sequentially
+- Next ticket: T006
 
 ---
 
@@ -259,3 +277,5 @@ User provides feedback or feature request
 - ALWAYS delegate to fullstack-developer for ANY code modification
 - Only handle: reading code, git operations, running commands, answering questions
 - When in doubt → DELEGATE
+- **ALWAYS create and track ticket numbers for all features**
+- **Show ticket number [T###] in all progress updates**

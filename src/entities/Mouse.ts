@@ -23,6 +23,7 @@ export class Mouse extends Phaser.GameObjects.Sprite {
   private currentDirection: Direction = Direction.NONE;
   private moveTimer: number = 0;
   private moveDelay: number = 150; // milliseconds between moves
+  private baseMoveDelay: number = 150; // Base delay (used to calculate speed changes)
   private lerpSpeed: number = 0.3; // Interpolation speed (0-1, higher = faster)
 
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
@@ -46,6 +47,9 @@ export class Mouse extends Phaser.GameObjects.Sprite {
     this.gridY = 1;
     this.visualX = 1;
     this.visualY = 1;
+
+    // Initialize base move delay
+    this.baseMoveDelay = this.moveDelay;
 
     // Set up input
     this.cursors = scene.input.keyboard!.createCursorKeys();
@@ -234,5 +238,30 @@ export class Mouse extends Phaser.GameObjects.Sprite {
     this.gridManager.clearTrail();
     this.trail = [];
     this.isDrawingTrail = false;
+  }
+
+  // Speed management methods
+  public getSpeedMultiplier(): number {
+    // Speed is inversely proportional to move delay
+    // Higher delay = slower speed, lower delay = faster speed
+    return this.baseMoveDelay / this.moveDelay;
+  }
+
+  public increaseSpeed(multiplier: number): void {
+    // Decrease move delay to increase speed (multiplicative)
+    // multiplier = 1.1 means 10% speed increase = delay / 1.1
+    this.moveDelay = this.moveDelay / multiplier;
+
+    // Cap at max speed (min delay)
+    const maxMultiplier = GameConfig.maxSpeedMultiplier;
+    const minDelay = this.baseMoveDelay / maxMultiplier;
+    if (this.moveDelay < minDelay) {
+      this.moveDelay = minDelay;
+    }
+  }
+
+  public resetSpeed(): void {
+    // Reset to base speed
+    this.moveDelay = this.baseMoveDelay;
   }
 }

@@ -94,13 +94,25 @@ export class GameScene extends Phaser.Scene {
     const catsToDestroy = FloodFill.fillTerritory(this.gridManager, trail, this.cats);
     this.mouse.resetTrail();
 
-    // Destroy trapped cats
+    // Destroy trapped cats and increase player speed
     if (catsToDestroy.length > 0) {
+      console.log(`[GameScene] Captured ${catsToDestroy.length} pirate(s)!`);
+
       catsToDestroy.forEach(cat => {
         cat.destroy();
+        // Increase speed by 10% for each captured cat
+        this.increasePlayerSpeed();
       });
+
       // Remove from cats array
       this.cats = this.cats.filter(cat => !catsToDestroy.includes(cat));
+
+      console.log(`[GameScene] ${this.cats.length} pirate(s) remaining. Speed: ${this.mouse.getSpeedMultiplier().toFixed(1)}×`);
+
+      // Check if all cats eliminated
+      if (this.cats.length === 0) {
+        console.log('[GameScene] All pirates defeated! Victory!');
+      }
     }
 
     // Check win condition
@@ -168,8 +180,11 @@ export class GameScene extends Phaser.Scene {
 
   private updateUI(): void {
     const percentage = this.gridManager.getPercentageCaptured();
+    const speedMultiplier = this.mouse.getSpeedMultiplier();
+    const speedDisplay = speedMultiplier > 1.0 ? ` | Speed: ${speedMultiplier.toFixed(1)}×` : '';
+
     if (this.uiElement) {
-      this.uiElement.textContent = `Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives} | Pirates: ${this.cats.length}`;
+      this.uiElement.textContent = `Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives} | Pirates: ${this.cats.length}${speedDisplay}`;
     }
 
     // Update power-up UI
@@ -276,6 +291,10 @@ export class GameScene extends Phaser.Scene {
   private handleMouseHit(): void {
     this.lives--;
     this.mouse.resetTrail();
+
+    // Reset speed to base on death
+    this.mouse.resetSpeed();
+    console.log('[GameScene] Player hit! Speed reset to base.');
 
     if (this.lives <= 0) {
       this.gameOver = true;
@@ -386,6 +405,42 @@ export class GameScene extends Phaser.Scene {
 
     const cellSize = GameConfig.cellSize;
     const trailWidth = 3; // Thin trail width
+
+    // Special case: if only 1 trail point, draw a dot and line to mouse position
+    if (trail.length === 1 && this.mouse.isInVoid()) {
+      const point = trail[0];
+      const centerX = point.x * cellSize + cellSize / 2;
+      const centerY = point.y * cellSize + cellSize / 2;
+
+      const mousePos = this.mouse.getVisualPosition();
+      const mouseX = mousePos.x * cellSize + cellSize / 2;
+      const mouseY = mousePos.y * cellSize + cellSize / 2;
+
+      // Draw glow for starting dot
+      this.gridGraphics.fillStyle(0xFFD700, 0.5);
+      this.gridGraphics.fillCircle(centerX, centerY, (trailWidth + 4) / 2);
+
+      // Draw main starting dot
+      this.gridGraphics.fillStyle(GameConfig.colors.trail, 1.0);
+      this.gridGraphics.fillCircle(centerX, centerY, trailWidth / 2);
+
+      // Draw line from starting point to current mouse position
+      // Draw glow line
+      this.gridGraphics.lineStyle(trailWidth + 4, 0xFFD700, 0.3);
+      this.gridGraphics.beginPath();
+      this.gridGraphics.moveTo(centerX, centerY);
+      this.gridGraphics.lineTo(mouseX, mouseY);
+      this.gridGraphics.strokePath();
+
+      // Draw main line
+      this.gridGraphics.lineStyle(trailWidth, GameConfig.colors.trail, 1.0);
+      this.gridGraphics.beginPath();
+      this.gridGraphics.moveTo(centerX, centerY);
+      this.gridGraphics.lineTo(mouseX, mouseY);
+      this.gridGraphics.strokePath();
+
+      return;
+    }
 
     // Helper function to draw trail path
     const drawTrailPath = () => {
@@ -934,6 +989,12 @@ export class GameScene extends Phaser.Scene {
         this.palmTreeGraphics.fillCircle(coconutX, coconutY, coconutRadius);
       }
     }
+  }
+
+  private increasePlayerSpeed(): void {
+    // Increase player speed by configured percentage (default 10%)
+    const speedIncrease = 1 + GameConfig.speedIncreasePerCat; // 1.1 for 10% increase
+    this.mouse.increaseSpeed(speedIncrease);
   }
 
   // Cleanup method to prevent memory leaks

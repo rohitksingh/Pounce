@@ -303,6 +303,24 @@ GameConfig.powerUps = {
 - **Container vs Sprite**: `Container.getBounds()` doesn't work for Graphics children - use distance checks
 - **Mouse is a Sprite**: Access `this.mouse.x`, `this.mouse.y`, `this.mouse.displayWidth` directly
 
+## Cat Capture Speed Boost Feature (2026-02-15)
+**Location**: See `cat-capture-speedboost.md` for complete documentation
+
+**Overview**: Capturing territory with cats inside eliminates them and increases player speed by 10% per cat
+
+**Key Points**:
+- Speed is controlled via `moveDelay` in Mouse.ts (inverse relationship)
+- Each cat captured: 10% speed boost (multiplicative stacking)
+- Speed resets to base on death
+- Speed capped at 2.5× base speed
+- UI shows speed multiplier when > 1.0×
+
+**Methods**:
+- `Mouse.getSpeedMultiplier()` - Returns current speed multiplier
+- `Mouse.increaseSpeed(multiplier)` - Increases speed by decreasing move delay
+- `Mouse.resetSpeed()` - Resets to base speed
+- `GameScene.increasePlayerSpeed()` - Applies configured speed boost
+
 ## Phaser 3.80+ Particle System API
 **CRITICAL**: Phaser 3.80+ changed the particle emitter API
 

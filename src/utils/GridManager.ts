@@ -34,6 +34,25 @@ export class GridManager {
       this.grid[y][0] = CellState.CAPTURED;
       this.grid[y][this.cols - 1] = CellState.CAPTURED;
     }
+
+    // Add center starting island
+    this.initializeCenterIsland();
+  }
+
+  private initializeCenterIsland(): void {
+    const centerX = Math.floor(this.cols / 2); // ~40 for 80 cols
+    const centerY = Math.floor(this.rows / 2); // ~30 for 60 rows
+    const islandRadius = 3; // Creates 7x7 island (bigger than player sprite)
+
+    for (let dx = -islandRadius; dx <= islandRadius; dx++) {
+      for (let dy = -islandRadius; dy <= islandRadius; dy++) {
+        const x = centerX + dx;
+        const y = centerY + dy;
+        if (x >= 0 && x < this.cols && y >= 0 && y < this.rows) {
+          this.grid[y][x] = CellState.CAPTURED;
+        }
+      }
+    }
   }
 
   getCellState(x: number, y: number): CellState {

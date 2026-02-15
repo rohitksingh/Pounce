@@ -42,7 +42,9 @@
       "Bash(npx tsx debug-flood-fill.ts)",
       "Bash(npx tsx:*)",
       "Bash(test:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(node -p:*)",
+      "Bash(git -C /Users/rohit/workspace/Pounce status)"
     ]
   }
 }

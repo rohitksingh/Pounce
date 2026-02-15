@@ -42,11 +42,11 @@ export class Mouse extends Phaser.GameObjects.Sprite {
     // Start with idle animation
     this.play('cat-idle');
 
-    // Start position - top-left corner on captured border
-    this.gridX = 1;
-    this.gridY = 1;
-    this.visualX = 1;
-    this.visualY = 1;
+    // Start position - center of the map on starting island
+    this.gridX = Math.floor(GameConfig.gridCols / 2);
+    this.gridY = Math.floor(GameConfig.gridRows / 2);
+    this.visualX = this.gridX;
+    this.visualY = this.gridY;
 
     // Initialize base move delay
     this.baseMoveDelay = this.moveDelay;

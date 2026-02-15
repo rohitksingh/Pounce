@@ -55,6 +55,29 @@ public/assets/           # Sprites, backgrounds, textures
 - `npm test` - Run test suite
 - `npm run test:ui` - Test UI
 
+### Release Process
+
+When merging to main and ready to create a release:
+
+1. Ensure you're on main branch with latest changes
+2. Run: `./scripts/create-release.sh`
+3. Select version bump type (patch/minor/major/custom)
+4. Enter release notes when prompted
+5. Script automatically:
+   - Bumps version in package.json
+   - Updates CHANGELOG.md with new entry
+   - Commits changes with release notes
+   - Creates git tag (e.g., v1.2.0)
+   - Pushes to remote repository
+   - Creates GitHub Release with notes
+
+**Version Types:**
+- **Patch** (1.0.0 → 1.0.1): Bug fixes, small changes, no new features
+- **Minor** (1.0.0 → 1.1.0): New features, backward compatible
+- **Major** (1.0.0 → 2.0.0): Breaking changes, incompatible API changes
+
+**Current Version:** 1.0.0 (see package.json)
+
 ---
 
 ## Agent Workflow

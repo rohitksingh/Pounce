@@ -7,10 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-15
+
 ### Added
-- Comprehensive release versioning system with automated script
-- CHANGELOG.md for tracking all changes
-- Git tags and GitHub Releases integration
+- Random spawn system in captured territory (T026)
+  - Player spawns at random location at game start
+  - Player respawns at random location after death
+  - Improves gameplay variety and unpredictability
+- Version display in bottom-right corner (T024)
+- Comprehensive release versioning system (T023)
+  - Automated release script
+  - CHANGELOG.md for tracking changes
+  - Git tags and GitHub Releases integration
+
+### Changed
+- Player no longer spawns at fixed center position
+- Cats no longer spawn on center island (T025)
+- Respawn now clears trail and resets direction/speed
 
 ## [1.0.0] - 2026-02-15
 
@@ -45,5 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vitest 4.x for automated testing
 - GitHub Actions for CI/CD
 
-[Unreleased]: https://github.com/rohitksingh/Pounce/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/rohitksingh/Pounce/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/rohitksingh/Pounce/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/rohitksingh/Pounce/releases/tag/v1.0.0

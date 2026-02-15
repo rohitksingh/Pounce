@@ -6,6 +6,17 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    console.log('[BootScene] Starting asset preload...');
+
+    // Add error handling for failed assets
+    this.load.on('loaderror', (fileObj: any) => {
+      console.error('[BootScene] Failed to load asset:', fileObj.key, fileObj.src);
+    });
+
+    this.load.on('complete', () => {
+      console.log('[BootScene] All assets loaded successfully');
+    });
+
     // Load cat animation frames
     this.loadCatAnimations();
 
@@ -36,6 +47,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('[BootScene] Boot complete, transitioning to MenuScene');
+
     // Boot complete, go to menu
     this.scene.start('MenuScene');
   }

@@ -30,6 +30,7 @@
         border-radius: 5px;
         min-width: 300px;
         text-align: center;
+        display: none; /* Hidden by default, shown when GameScene starts */
       }
       #powerup-container {
         background: linear-gradient(135deg, #2C3E50, #34495E);
@@ -56,7 +57,7 @@
   </head>
   <body>
     <div id="app-wrapper">
-      <div id="ui-container">Territory: 0.0% | Lives: 3</div>
+      <div id="ui-container" style="display: none;">Territory: 0.0% | Lives: 3</div>
       <div id="powerup-container"></div>
       <div id="game-container"></div>
     </div>

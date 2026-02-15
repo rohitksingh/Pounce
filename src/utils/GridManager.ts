@@ -106,4 +106,37 @@ export class GridManager {
   getRows(): number {
     return this.rows;
   }
+
+  /**
+   * Get a random captured cell for player spawn
+   * Excludes border cells (2-cell margin) for safety
+   * @returns {x, y} coordinates of random captured cell, or null if none available
+   */
+  getRandomCapturedCell(): { x: number; y: number } | null {
+    const capturedCells: { x: number; y: number }[] = [];
+
+    // Collect all CAPTURED cells (excluding border for safety)
+    for (let y = 2; y < this.rows - 2; y++) {
+      for (let x = 2; x < this.cols - 2; x++) {
+        if (this.grid[y][x] === CellState.CAPTURED) {
+          capturedCells.push({ x, y });
+        }
+      }
+    }
+
+    if (capturedCells.length === 0) {
+      // Fallback to center if no captured cells available
+      console.warn('[GridManager] No captured cells available for spawn, using center');
+      return {
+        x: Math.floor(this.cols / 2),
+        y: Math.floor(this.rows / 2)
+      };
+    }
+
+    // Return random captured cell
+    const randomIndex = Math.floor(Math.random() * capturedCells.length);
+    const spawnCell = capturedCells[randomIndex];
+    console.log(`[GridManager] Random spawn selected: (${spawnCell.x}, ${spawnCell.y}) from ${capturedCells.length} captured cells`);
+    return spawnCell;
+  }
 }

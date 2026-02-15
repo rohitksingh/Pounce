@@ -42,11 +42,22 @@ export class Mouse extends Phaser.GameObjects.Sprite {
     // Start with idle animation
     this.play('cat-idle');
 
-    // Start position - center of the map on starting island
-    this.gridX = Math.floor(GameConfig.gridCols / 2);
-    this.gridY = Math.floor(GameConfig.gridRows / 2);
+    // Start position - random location in captured territory
+    const spawnCell = gridManager.getRandomCapturedCell();
+    if (spawnCell) {
+      this.gridX = spawnCell.x;
+      this.gridY = spawnCell.y;
+    } else {
+      // Fallback to center if no captured cells
+      this.gridX = Math.floor(GameConfig.gridCols / 2);
+      this.gridY = Math.floor(GameConfig.gridRows / 2);
+    }
     this.visualX = this.gridX;
     this.visualY = this.gridY;
+
+    // Update sprite position to match spawn
+    this.x = this.gridX * cellSize + cellSize / 2;
+    this.y = this.gridY * cellSize + cellSize / 2;
 
     // Initialize base move delay
     this.baseMoveDelay = this.moveDelay;
@@ -263,5 +274,40 @@ export class Mouse extends Phaser.GameObjects.Sprite {
   public resetSpeed(): void {
     // Reset to base speed
     this.moveDelay = this.baseMoveDelay;
+  }
+
+  /**
+   * Respawn the player at a random captured cell after death
+   */
+  public respawn(): void {
+    // Get random captured cell from grid manager
+    const spawnCell = this.gridManager.getRandomCapturedCell();
+
+    if (!spawnCell) {
+      console.error('[Mouse] No captured cells available for respawn');
+      return;
+    }
+
+    console.log(`[Mouse] Respawning at (${spawnCell.x}, ${spawnCell.y})`);
+
+    // Update grid position
+    this.gridX = spawnCell.x;
+    this.gridY = spawnCell.y;
+
+    // Update visual position (no interpolation on spawn - instant teleport)
+    this.visualX = spawnCell.x;
+    this.visualY = spawnCell.y;
+
+    // Update sprite position
+    const cellSize = GameConfig.cellSize;
+    this.x = spawnCell.x * cellSize + cellSize / 2;
+    this.y = spawnCell.y * cellSize + cellSize / 2;
+
+    // Clear trail
+    this.trail = [];
+    this.isDrawingTrail = false;
+
+    // Reset direction to stopped
+    this.currentDirection = Direction.NONE;
   }
 }

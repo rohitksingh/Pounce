@@ -13,7 +13,10 @@
       "Bash(git stash:*)",
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(lsof:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gtimeout 10 npm run dev:*)"
     ]
   }
 }

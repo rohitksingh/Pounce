@@ -31,6 +31,11 @@ export class GameScene extends Phaser.Scene {
   private sparkleParticleManager?: Phaser.GameObjects.Particles.ParticleEmitter;
   private waveTime: number = 0;
 
+  // Palm tree system
+  private palmTreeGraphics!: Phaser.GameObjects.Graphics;
+  private palmTreePositions: { x: number; y: number; size: number; phaseOffset: number }[] = [];
+  private lastCapturedCells: number = 0;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -537,6 +542,10 @@ export class GameScene extends Phaser.Scene {
     this.causticsGraphics.setDepth(0.6);
     this.causticsGraphics.setAlpha(0.2);
 
+    // Create graphics for palm trees (depth 2.5, above deck at 2, below cats at 5)
+    this.palmTreeGraphics = this.add.graphics();
+    this.palmTreeGraphics.setDepth(2.5);
+
     // Create procedural particle textures
     this.createParticleTextures();
 
@@ -617,6 +626,9 @@ export class GameScene extends Phaser.Scene {
 
     // Render light caustics
     this.renderLightCaustics();
+
+    // Update palm trees if captured territory changed
+    this.updatePalmTrees();
   }
 
   private renderAnimatedWaves(): void {
@@ -707,6 +719,200 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // ===============================
+  // Palm Tree System
+  // ===============================
+
+  private updatePalmTrees(): void {
+    // Count current captured cells
+    const grid = this.gridManager.getGrid();
+    let capturedCount = 0;
+    for (let y = 0; y < this.gridManager.getRows(); y++) {
+      for (let x = 0; x < this.gridManager.getCols(); x++) {
+        if (grid[y][x] === CellState.CAPTURED) {
+          capturedCount++;
+        }
+      }
+    }
+
+    // Regenerate tree positions if captured territory changed
+    if (capturedCount !== this.lastCapturedCells) {
+      this.generatePalmTreePositions();
+      this.lastCapturedCells = capturedCount;
+    }
+
+    // Render swaying palm trees
+    this.renderPalmTrees();
+  }
+
+  private generatePalmTreePositions(): void {
+    this.palmTreePositions = [];
+    const grid = this.gridManager.getGrid();
+    const cellSize = GameConfig.cellSize;
+    const spacing = 7; // Place tree every 7x7 grid area (reduced from 5x5 for performance)
+
+    // Scan captured territory and place trees
+    for (let y = 0; y < this.gridManager.getRows(); y += spacing) {
+      for (let x = 0; x < this.gridManager.getCols(); x += spacing) {
+        // Check if this cell is captured
+        if (grid[y][x] === CellState.CAPTURED) {
+          // Add random offset within the spacing area
+          const offsetX = Phaser.Math.Between(-spacing / 2, spacing / 2);
+          const offsetY = Phaser.Math.Between(-spacing / 2, spacing / 2);
+
+          const finalX = (x + offsetX) * cellSize + cellSize / 2;
+          const finalY = (y + offsetY) * cellSize + cellSize / 2;
+
+          // Verify final position is still in captured territory
+          const gridX = Math.floor(finalX / cellSize);
+          const gridY = Math.floor(finalY / cellSize);
+
+          if (gridX >= 0 && gridX < this.gridManager.getCols() &&
+              gridY >= 0 && gridY < this.gridManager.getRows() &&
+              grid[gridY][gridX] === CellState.CAPTURED) {
+
+            // Random tree size (small, medium, large)
+            const size = Phaser.Math.Between(0, 2); // 0=small, 1=medium, 2=large
+
+            // Unique phase offset based on position for organic sway
+            const phaseOffset = (finalX * 0.01 + finalY * 0.01);
+
+            this.palmTreePositions.push({
+              x: finalX,
+              y: finalY,
+              size,
+              phaseOffset
+            });
+          }
+        }
+      }
+    }
+  }
+
+  private renderPalmTrees(): void {
+    this.palmTreeGraphics.clear();
+
+    const grid = this.gridManager.getGrid();
+    const cellSize = GameConfig.cellSize;
+    let treesSkipped = false;
+
+    // Draw each palm tree with swaying animation
+    for (const tree of this.palmTreePositions) {
+      // Verify cell at tree position is still CAPTURED
+      const gridX = Math.floor(tree.x / cellSize);
+      const gridY = Math.floor(tree.y / cellSize);
+
+      if (gridX >= 0 && gridX < this.gridManager.getCols() &&
+          gridY >= 0 && gridY < this.gridManager.getRows() &&
+          grid[gridY][gridX] === CellState.CAPTURED) {
+        this.drawPalmTree(tree.x, tree.y, tree.size, tree.phaseOffset);
+      } else {
+        treesSkipped = true;
+      }
+    }
+
+    // If any trees were skipped (floating in void), regenerate all positions
+    if (treesSkipped) {
+      this.generatePalmTreePositions();
+    }
+  }
+
+  private drawPalmTree(x: number, y: number, size: number, phaseOffset: number): void {
+    // Size variations (reduced frond count from 6/7/8 to 4/5/6 for performance)
+    const sizes = [
+      { height: 20, width: 3, frondLength: 8, frondCount: 4 },   // Small
+      { height: 30, width: 4, frondLength: 12, frondCount: 5 },  // Medium
+      { height: 40, width: 5, frondLength: 15, frondCount: 6 }   // Large
+    ];
+    const config = sizes[size];
+
+    // Calculate sway angle using sine wave
+    const swaySpeed = 0.8 + size * 0.2; // Larger trees sway slower
+    const swayAmount = 0.15 - size * 0.03; // Larger trees sway less
+    const swayAngle = Math.sin(this.waveTime * swaySpeed + phaseOffset) * swayAmount;
+
+    // Draw trunk (brown, slightly tapered)
+    const trunkColor = 0x8B4513; // Saddle brown
+    this.palmTreeGraphics.fillStyle(trunkColor, 1);
+
+    // Draw trunk as a series of rectangles for slight curve effect
+    const segments = 5;
+    for (let i = 0; i < segments; i++) {
+      const segmentY = y - (i / segments) * config.height;
+      const segmentHeight = config.height / segments;
+      const segmentWidth = config.width * (1 - (i / segments) * 0.3); // Taper toward top
+
+      // Apply sway to upper segments
+      const segmentSway = (i / segments) * swayAngle * config.height * 0.5;
+
+      this.palmTreeGraphics.fillRect(
+        x - segmentWidth / 2 + segmentSway,
+        segmentY,
+        segmentWidth,
+        segmentHeight
+      );
+    }
+
+    // Draw palm fronds at top (green, radiating outward)
+    const frondColors = [0x228B22, 0x32CD32, 0x006400]; // Forest green, lime green, dark green
+    const topX = x + swayAngle * config.height * 0.5;
+    const topY = y - config.height;
+
+    // Draw fronds radiating from top
+    for (let i = 0; i < config.frondCount; i++) {
+      const angle = (i / config.frondCount) * Math.PI * 2;
+      const frondColor = frondColors[i % frondColors.length];
+
+      // Add swaying motion to fronds
+      const frondSway = Math.sin(this.waveTime * swaySpeed + phaseOffset + i * 0.5) * 0.1;
+      const finalAngle = angle + swayAngle + frondSway;
+
+      // Draw frond as filled triangle
+      this.palmTreeGraphics.fillStyle(frondColor, 0.8);
+      this.palmTreeGraphics.beginPath();
+
+      // Frond base (at top of trunk)
+      this.palmTreeGraphics.moveTo(topX, topY);
+
+      // Frond tip
+      const tipX = topX + Math.cos(finalAngle) * config.frondLength;
+      const tipY = topY + Math.sin(finalAngle) * config.frondLength;
+
+      // Frond side points (for width)
+      const perpAngle = finalAngle + Math.PI / 2;
+      const frondWidth = config.width * 0.8;
+
+      const side1X = topX + Math.cos(perpAngle) * frondWidth / 2;
+      const side1Y = topY + Math.sin(perpAngle) * frondWidth / 2;
+      const side2X = topX - Math.cos(perpAngle) * frondWidth / 2;
+      const side2Y = topY - Math.sin(perpAngle) * frondWidth / 2;
+
+      // Draw curved frond
+      this.palmTreeGraphics.lineTo(side1X, side1Y);
+      this.palmTreeGraphics.lineTo(tipX, tipY);
+      this.palmTreeGraphics.lineTo(side2X, side2Y);
+      this.palmTreeGraphics.closePath();
+      this.palmTreeGraphics.fillPath();
+    }
+
+    // Optional: Add coconuts (small brown circles at base of fronds)
+    if (size >= 1) { // Only medium and large trees
+      const coconutCount = 2 + size;
+      for (let i = 0; i < coconutCount; i++) {
+        // Fixed angle positions that sway with tree, not orbit continuously
+        const baseAngle = (i / coconutCount) * Math.PI * 2;
+        const coconutAngle = baseAngle + swayAngle * 0.3; // Sway gently with tree
+        const coconutDistance = config.width * 1.5;
+        const coconutX = topX + Math.cos(coconutAngle) * coconutDistance;
+        const coconutY = topY + Math.sin(coconutAngle) * coconutDistance;
+        const coconutRadius = 2 + size * 0.5;
+
+        this.palmTreeGraphics.fillStyle(0x654321, 1); // Dark brown
+        this.palmTreeGraphics.fillCircle(coconutX, coconutY, coconutRadius);
+      }
+    }
+  }
+
   // Cleanup method to prevent memory leaks
   shutdown(): void {
     // Destroy particle emitters
@@ -716,5 +922,6 @@ export class GameScene extends Phaser.Scene {
     // Destroy graphics objects
     this.waveGraphics?.destroy();
     this.causticsGraphics?.destroy();
+    this.palmTreeGraphics?.destroy();
   }
 }

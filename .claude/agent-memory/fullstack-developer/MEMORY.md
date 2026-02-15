@@ -42,6 +42,7 @@
 - Depth 0.8: Treasure sparkle particles
 - Depth 1: Island overlay (tiled sprite with alpha)
 - Depth 2: Grid graphics (captured territory, trail)
+- Depth 2.5: Palm trees (swaying animation on captured territory) - FIXED depth from 1.5
 - Depth 3: Power-ups
 - Depth 5: Cats
 - Depth 6: Cat state overlays (freeze/slow visual effects)
@@ -51,7 +52,7 @@
 ## Animated Background System (2026-02-15)
 **Location**: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts`
 
-**Four-Layer System**:
+**Four-Layer Ocean System**:
 1. **Animated Ocean Waves** - Multi-layer sine wave rendering using Graphics API
 2. **Light Caustics** - Underwater sunlight shimmer effect
 3. **Rising Bubbles** - Particle system floating upward
@@ -76,6 +77,45 @@
 - Particle texture generation: Use Graphics API then `generateTexture()`
 - Animated waves: Multiple sine waves with different frequencies/speeds
 - Light caustics: Grid-based circles with sine/cosine offsets for organic movement
+
+## Palm Tree System (2026-02-15)
+**Location**: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts`
+**Details**: See `palm-tree-fixes.md` for complete bug fix history
+
+**Feature**: Swaying palm trees on captured territory to create tropical island aesthetic
+
+**Visual Design**:
+- Three tree sizes: small (20px), medium (30px), large (40px)
+- Brown trunks (0x8B4513) with tapering effect
+- Green palm fronds (0x228B22, 0x32CD32, 0x006400) radiating from top
+- Coconuts on medium/large trees (0x654321)
+- Swaying animation using sine waves
+- Each tree has unique phase offset for organic movement
+
+**Technical Implementation**:
+- Graphics object at depth 1.5 (above deck, below gameplay)
+- Trees only render on CAPTURED cells
+- Placement: 1 tree per 5x5 grid area with random offset
+- Position regeneration when captured territory changes
+- Tracks `lastCapturedCells` to optimize regeneration
+- Sway speed varies by size (larger trees sway slower)
+- Sway amount varies by size (larger trees sway less)
+
+**Key Methods**:
+- `updatePalmTrees()` - Check for territory changes and trigger regeneration
+- `generatePalmTreePositions()` - Scan captured territory and place trees
+- `renderPalmTrees()` - Clear and redraw all trees each frame
+- `drawPalmTree()` - Draw individual tree with swaying animation
+
+**Performance**:
+- Only regenerates positions when territory changes
+- ~240 trees max at 75% capture (5x5 spacing on 80x60 grid)
+- Procedural rendering keeps memory footprint low
+
+**Color Palette**:
+- Trunk: 0x8B4513 (saddle brown)
+- Coconuts: 0x654321 (dark brown)
+- Fronds: 0x228B22 (forest green), 0x32CD32 (lime green), 0x006400 (dark green)
 
 ### Animated Background Bug Fixes (2026-02-15)
 

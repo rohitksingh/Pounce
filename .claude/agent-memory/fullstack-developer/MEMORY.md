@@ -93,19 +93,21 @@
 - Each tree has unique phase offset for organic movement
 
 **Technical Implementation**:
-- Graphics object at depth 1.5 (above deck, below gameplay)
+- Graphics object at depth 2.5 (above captured territory, below gameplay)
 - Trees only render on CAPTURED cells
-- Placement: 1 tree per 5x5 grid area with random offset
-- Position regeneration when captured territory changes
-- Tracks `lastCapturedCells` to optimize regeneration
+- Placement: 1 tree per 7x7 grid area with random offset
+- **Incremental updates**: Trees persist at original positions, new ones added only
+- Tracks `lastCapturedCells` to detect territory changes
 - Sway speed varies by size (larger trees sway slower)
 - Sway amount varies by size (larger trees sway less)
 
 **Key Methods**:
-- `updatePalmTrees()` - Check for territory changes and trigger regeneration
-- `generatePalmTreePositions()` - Scan captured territory and place trees
-- `renderPalmTrees()` - Clear and redraw all trees each frame
+- `updatePalmTrees()` - Check for territory changes and trigger update
+- `updatePalmTreePositions()` - Incrementally add/remove trees (FIXED: was `generatePalmTreePositions()`)
+- `renderPalmTrees()` - Redraw all trees each frame with swaying animation
 - `drawPalmTree()` - Draw individual tree with swaying animation
+
+**IMPORTANT FIX (2026-02-15)**: See `bug-fixes.md` for incremental tree update implementation
 
 **Performance**:
 - Only regenerates positions when territory changes
@@ -269,11 +271,29 @@ GameConfig.powerUps = {
 - Reduced from `cellSize * 2.0` to `cellSize * 1.0` to match visual size
 - Added `break` after first collection to prevent multiple pickups per frame
 
+**Bug #6: Power-Up Collision Only Works at Center (FIXED 2026-02-15)**
+- **Problem**: Collection only worked when mouse center touched power-up center
+- **First Attempt**: Used `RectangleToRectangle()` with `powerUp.getBounds()`
+- **CRITICAL BUG**: PowerUp extends `Container`, NOT `Sprite` - getBounds() doesn't work!
+- **Final Solution**: Use distance-based collision with forgiving radius
+  ```typescript
+  const mouseRadius = this.mouse.displayWidth / 2;
+  const powerUpRadius = GameConfig.cellSize; // 10px (half of 20px visual)
+  const collectionRadius = mouseRadius + powerUpRadius + 5; // +5px buffer
+  const distance = Phaser.Math.Distance.Between(
+    this.mouse.x, this.mouse.y, powerUp.x, powerUp.y
+  );
+  if (distance < collectionRadius) { /* collect */ }
+  ```
+- **Files Changed**: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts` - `checkPowerUpCollection()`
+
 **Key Insights**:
 - Physics body must be disabled when frozen (velocity=0 not enough)
 - Always save velocity before modifying it for state changes
 - Transitioning between states requires re-enabling physics body
 - Division by zero occurs when restoring from frozen state with zero velocity
+- **Container vs Sprite**: `Container.getBounds()` doesn't work for Graphics children - use distance checks
+- **Mouse is a Sprite**: Access `this.mouse.x`, `this.mouse.y`, `this.mouse.displayWidth` directly
 
 ## Phaser 3.80+ Particle System API
 **CRITICAL**: Phaser 3.80+ changed the particle emitter API

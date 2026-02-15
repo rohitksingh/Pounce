@@ -479,16 +479,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   private checkPowerUpCollection(): void {
-    const mousePos = this.mouse.getGridPosition();
-    const cellSize = GameConfig.cellSize;
-    const mouseX = mousePos.x * cellSize + cellSize / 2;
-    const mouseY = mousePos.y * cellSize + cellSize / 2;
-    const collectionRadius = cellSize * 1.0; // Reduced from 2.0 to match visual size
+    // PowerUp is a Container (not Sprite), so use distance-based collision
+    // PowerUp visual size is GameConfig.cellSize * 2 = 20 pixels
+    const mouseRadius = this.mouse.displayWidth / 2;
+    const powerUpRadius = GameConfig.cellSize; // 10 pixels (half of 20px visual size)
+    const collectionRadius = mouseRadius + powerUpRadius + 5; // +5px buffer for forgiving collection
 
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const powerUp = this.powerUps[i];
-      const distance = Phaser.Math.Distance.Between(mouseX, mouseY, powerUp.x, powerUp.y);
 
+      // Calculate distance between mouse and power-up centers
+      const distance = Phaser.Math.Distance.Between(
+        this.mouse.x,
+        this.mouse.y,
+        powerUp.x,
+        powerUp.y
+      );
+
+      // Check if mouse is close enough to collect
       if (distance < collectionRadius) {
         // Collect power-up
         this.collectPowerUp(powerUp);
@@ -735,9 +743,9 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Regenerate tree positions if captured territory changed
+    // Update tree positions incrementally if captured territory changed
     if (capturedCount !== this.lastCapturedCells) {
-      this.generatePalmTreePositions();
+      this.updatePalmTreePositions();
       this.lastCapturedCells = capturedCount;
     }
 
@@ -745,15 +753,40 @@ export class GameScene extends Phaser.Scene {
     this.renderPalmTrees();
   }
 
-  private generatePalmTreePositions(): void {
-    this.palmTreePositions = [];
+  private updatePalmTreePositions(): void {
     const grid = this.gridManager.getGrid();
     const cellSize = GameConfig.cellSize;
-    const spacing = 7; // Place tree every 7x7 grid area (reduced from 5x5 for performance)
+    const spacing = 7; // Place tree every 7x7 grid area
 
-    // Scan captured territory and place trees
+    // Step 1: Remove trees that are no longer on captured territory
+    this.palmTreePositions = this.palmTreePositions.filter(tree => {
+      const gridX = Math.floor(tree.x / cellSize);
+      const gridY = Math.floor(tree.y / cellSize);
+
+      return gridX >= 0 && gridX < this.gridManager.getCols() &&
+             gridY >= 0 && gridY < this.gridManager.getRows() &&
+             grid[gridY][gridX] === CellState.CAPTURED;
+    });
+
+    // Step 2: Build a spatial grid to track which areas already have trees
+    // This prevents placing multiple trees in the same area
+    const treeGrid = new Set<string>();
+    for (const tree of this.palmTreePositions) {
+      const areaX = Math.floor(tree.x / cellSize / spacing);
+      const areaY = Math.floor(tree.y / cellSize / spacing);
+      treeGrid.add(`${areaX},${areaY}`);
+    }
+
+    // Step 3: Scan captured territory and add NEW trees only where there aren't any
     for (let y = 0; y < this.gridManager.getRows(); y += spacing) {
       for (let x = 0; x < this.gridManager.getCols(); x += spacing) {
+        const areaKey = `${Math.floor(x / spacing)},${Math.floor(y / spacing)}`;
+
+        // Skip if this area already has a tree
+        if (treeGrid.has(areaKey)) {
+          continue;
+        }
+
         // Check if this cell is captured
         if (grid[y][x] === CellState.CAPTURED) {
           // Add random offset within the spacing area
@@ -783,6 +816,9 @@ export class GameScene extends Phaser.Scene {
               size,
               phaseOffset
             });
+
+            // Mark this area as occupied
+            treeGrid.add(areaKey);
           }
         }
       }
@@ -792,28 +828,10 @@ export class GameScene extends Phaser.Scene {
   private renderPalmTrees(): void {
     this.palmTreeGraphics.clear();
 
-    const grid = this.gridManager.getGrid();
-    const cellSize = GameConfig.cellSize;
-    let treesSkipped = false;
-
     // Draw each palm tree with swaying animation
+    // Trees are already filtered in updatePalmTreePositions() to only include captured territory
     for (const tree of this.palmTreePositions) {
-      // Verify cell at tree position is still CAPTURED
-      const gridX = Math.floor(tree.x / cellSize);
-      const gridY = Math.floor(tree.y / cellSize);
-
-      if (gridX >= 0 && gridX < this.gridManager.getCols() &&
-          gridY >= 0 && gridY < this.gridManager.getRows() &&
-          grid[gridY][gridX] === CellState.CAPTURED) {
-        this.drawPalmTree(tree.x, tree.y, tree.size, tree.phaseOffset);
-      } else {
-        treesSkipped = true;
-      }
-    }
-
-    // If any trees were skipped (floating in void), regenerate all positions
-    if (treesSkipped) {
-      this.generatePalmTreePositions();
+      this.drawPalmTree(tree.x, tree.y, tree.size, tree.phaseOffset);
     }
   }
 

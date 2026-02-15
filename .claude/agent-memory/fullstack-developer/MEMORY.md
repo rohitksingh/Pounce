@@ -35,12 +35,58 @@
 - `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts` - Added visual position connection in `renderTrail()`
 - `/Users/rohit/workspace/Pounce/src/entities/Mouse.ts` - Added `getVisualPosition()` method
 
+### Flood Fill Algorithm - QIX/Volfied Standard (2026-02-15) - CRITICAL
+
+**DEFINITIVE SOLUTION - T021**: Old Territory Adjacency Detection
+- **Core Principle**: Outer ocean is the region connected to WHERE THE PLAYER CAME FROM
+- **Algorithm**:
+  1. Mark new trail as CAPTURED
+  2. Find all VOID regions
+  3. Filter regions adjacent to OLD territory (captured cells NOT in the new trail)
+  4. The LARGEST region adjacent to old territory is the outer ocean → SKIP
+  5. All other regions are enclosed → FILL
+- **Why It Works**: No heuristics - directly implements QIX/Volfied game logic
+- **Files**: `/Users/rohit/workspace/Pounce/src/utils/FloodFill.ts`
+- **Key Method**: `isAdjacentToOldTerritory()` - checks if region touches pre-existing captured cells
+
+**Failed Approaches (DO NOT USE)**:
+- ❌ Size-based ("largest region") - fails when enclosed > 50% of VOID
+- ❌ Border coordinates (x=0, y=0) - fails for border-side loops
+- ❌ Sides count (>=3) - fails when ocean is confined at 50%+ capture
+- **Lesson**: Heuristics fail at edge cases; use topological connection to old territory
+- **New Logic**: Fill region if `isEnclosed || !hasCats` (no size check needed)
+- **Key Insight**: Border detection is the ONLY reliable way to distinguish enclosed vs outer regions
+
+**T020 Fix (Part 2) - CRITICAL BORDER BUG**: isRegionEnclosed() had wrong coordinates
+- **Problem**: Checked if region touched x=0, y=0, x=cols-1, y=rows-1
+- **Why Wrong**: Border at those coordinates is CAPTURED (not VOID)
+- **Reality**: FloodFill only processes VOID cells, never reaches border coordinates
+- **Result**: BOTH enclosed and outer regions would pass the check (always true)
+- **Solution**: Check if region touches cells ADJACENT to border (x=1, y=1, x=cols-2, y=rows-2)
+- **Correct Logic**: Outer ocean touches x=1/y=1/x=78/y=58, enclosed regions do not
+- **Files**: `/Users/rohit/workspace/Pounce/src/utils/FloodFill.ts` - lines 111-117
+
+**T021 Fix - CRITICAL: Largest Region Logic is WRONG**:
+- **Problem**: "Largest region" approach fails when enclosed region > 50% of remaining VOID
+- **Counterexample**: 40% captured, player makes loop enclosing 1600 cells (55% of void), outer ocean is only 1280 cells
+- **Bug**: Algorithm fills outer ocean (smaller region) instead of enclosed region (larger region)
+- **Root Cause**: Assumption "outer ocean is always largest" is mathematically FALSE at high percentages
+- **Solution**: Topological detection using border-adjacent cells (x=1, y=1, x=cols-2, y=rows-2)
+- **Algorithm**: Outer ocean touches 3+ border-adjacent sides, enclosed regions touch 0-2 sides
+- **Why It Works**:
+  - Small loops: Ocean touches 4 sides, enclosed touches 0 ✓
+  - Large loops (>50%): Ocean still touches 3-4 sides, enclosed touches 0 ✓
+  - Corner loops: Ocean touches 4 sides, corner touches 2 ✓
+- **Files**: `/Users/rohit/workspace/Pounce/src/utils/FloodFill.ts` - Added `isOuterOcean()` method
+- **Date**: 2026-02-15
+
 ### Important File Locations
 - Game scene: `/Users/rohit/workspace/Pounce/src/scenes/GameScene.ts`
 - Mouse entity: `/Users/rohit/workspace/Pounce/src/entities/Mouse.ts`
 - Cat entity: `/Users/rohit/workspace/Pounce/src/entities/Cat.ts`
 - PowerUp entity: `/Users/rohit/workspace/Pounce/src/entities/PowerUp.ts`
 - Grid manager: `/Users/rohit/workspace/Pounce/src/utils/GridManager.ts`
+- Flood fill: `/Users/rohit/workspace/Pounce/src/utils/FloodFill.ts`
 - Config: `/Users/rohit/workspace/Pounce/src/config/GameConfig.ts`
 
 ## Rendering Layers

@@ -23,7 +23,26 @@
       "Bash(/Users/rohit/workspace/Pounce/scripts/test-notification.sh)",
       "Bash(exit:*)",
       "Bash(ls:*)",
-      "Bash(shellcheck:*)"
+      "Bash(shellcheck:*)",
+      "Bash(/Users/rohit/workspace/Pounce/scripts/check-slack-reaction.sh:*)",
+      "Bash(/Users/rohit/workspace/Pounce/scripts/wait-for-approval.sh:*)",
+      "Bash(/Users/rohit/workspace/Pounce/scripts/test-approval-workflow.sh:*)",
+      "Bash(/Users/rohit/workspace/Pounce/scripts/T007_IMPLEMENTATION_SUMMARY.md:*)",
+      "Bash(bash -n:*)",
+      "Bash(head:*)",
+      "Bash(./scripts/notify-slack.sh:*)",
+      "Bash(./scripts/check-slack-reaction.sh:*)",
+      "Bash(source:*)",
+      "Bash(curl:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(timeout 5 npm run preview:*)",
+      "Bash(cat:*)",
+      "Bash(xargs kill:*)",
+      "Bash(Lives: 3\" immediately\n- Created illusion that GameScene had auto-started\n- MenuScene was actually loading but appeared to be skipped\n\nFixes:\n1. Hide UI container by default \\(index.html\\)\n   - Added display: none to CSS\n   - UI only shows when GameScene starts\n\n2. Show UI when GameScene starts \\(GameScene.ts\\)\n   - Added uiElement.style.display = ''block'' in create\\(\\)\n   - UI appears only during actual gameplay\n\n3. Add comprehensive logging \\(all scenes\\)\n   - BootScene: asset loading and transitions\n   - MenuScene: scene start and button clicks\n   - GameScene: scene start confirmation\n   - Helps debug scene flow issues\n\nScene flow \\(correct\\):\n1. BootScene → loads assets\n2. MenuScene → shows POUNCE title and START GAME button\n3. GameScene → shows game UI and starts gameplay\n\nTesting:\n- Verified build works locally\n- Console logs show correct scene transitions\n- MenuScene now visible before GameScene\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npx tsx debug-flood-fill.ts)",
+      "Bash(npx tsx:*)",
+      "Bash(test:*)",
+      "Bash(kill:*)"
     ]
   }
 }

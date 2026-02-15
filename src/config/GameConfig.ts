@@ -22,7 +22,7 @@ export const GameConfig = {
   initialCats: 7,
   mouseSpeed: 100,          // pixels per second (base speed)
   catSpeed: 80,
-  winPercentage: 75,        // % of territory to win
+  winPercentage: 95,        // % of territory to win
   initialLives: 3,
   speedIncreasePerCat: 0.1, // 10% increase per cat captured (multiplicative)
   maxSpeedMultiplier: 2.5,  // Cap speed at 2.5× base speed

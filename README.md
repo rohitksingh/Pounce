@@ -4,7 +4,7 @@ A territory-capture game inspired by classic QIX/Volfied gameplay. Control a mou
 
 ## How to Play
 
-- **Objective**: Capture 75% of the playing field to win
+- **Objective**: Capture 95% of the playing field to win
 - **Controls**: Use WASD or Arrow Keys to move the mouse
 - **Lives**: You start with 3 lives
 - **Gameplay**:
@@ -139,7 +139,7 @@ pounce/
 ✅ Trail drawing in dangerous zones
 ✅ Flood fill territory capture
 ✅ Collision detection
-✅ Win condition (75% territory)
+✅ Win condition (95% territory)
 ✅ Lives system (3 lives)
 ✅ Real-time UI (percentage & lives)
 ✅ Win/Game Over screens

@@ -61,7 +61,9 @@ export class GridManager {
       }
     }
 
-    return (captured / total) * 100;
+    const percentage = (captured / total) * 100;
+    console.log(`[GridManager] Captured: ${captured}/${total} = ${percentage.toFixed(2)}%`);
+    return percentage;
   }
 
   clearTrail(): void {

@@ -62,6 +62,23 @@ export class GameScene extends Phaser.Scene {
     this.currentTheme = getThemeConfig(this.levelConfig.theme);
     this.applyLevelConfig();
 
+    // Update level title in UI
+    const levelTitleElement = document.getElementById('level-title');
+    if (levelTitleElement) {
+      // Get emoji based on theme
+      const emojiMap: Record<string, string> = {
+        'tropical': '🏝️',
+        'arctic': '❄️',
+        'desert': '🏜️'
+      };
+
+      const emoji = emojiMap[this.levelConfig.theme] || '🎮';
+      const levelNumber = this.currentLevel;
+      const levelName = this.levelConfig.name.toUpperCase();
+
+      levelTitleElement.textContent = `${emoji} LEVEL ${levelNumber}: ${levelName}`;
+    }
+
     // Reset game state for new level
     this.lives = GameConfig.initialLives;
     this.gameOver = false;

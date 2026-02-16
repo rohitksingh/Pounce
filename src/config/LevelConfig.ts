@@ -14,7 +14,7 @@ export interface LevelDefinition {
 export const LEVELS: LevelDefinition[] = [
   {
     level: 1,
-    name: "Tropical Paradise",
+    name: "Caribbean Beach",
     catCount: 5,
     catSpeed: 70,
     winPercentage: 85,

@@ -6,14 +6,37 @@ export class MenuScene extends Phaser.Scene {
     super({ key: 'MenuScene' });
   }
 
-  create() {
+  create(data?: { lastLevel?: number }) {
     console.log('[MenuScene] Menu scene started');
+
+    // Hide all game UI elements when menu starts
+    const levelIndicator = document.getElementById('level-indicator');
+    if (levelIndicator) {
+      levelIndicator.style.display = 'none';
+    } else {
+      console.error('[MenuScene] UI element missing: level-indicator');
+    }
+
+    const uiContainer = document.getElementById('ui-container');
+    if (uiContainer) {
+      uiContainer.style.display = 'none';
+    } else {
+      console.error('[MenuScene] UI element missing: ui-container');
+    }
+
+    const powerupContainer = document.getElementById('powerup-container');
+    if (powerupContainer) {
+      powerupContainer.style.display = 'none';
+    } else {
+      console.error('[MenuScene] UI element missing: powerup-container');
+    }
+
     const { width, height } = GameConfig;
 
     // Title
     const title = this.add.text(width / 2, height / 3, 'POUNCE', {
       fontSize: '64px',
-      color: '#3498db',
+      color: GameConfig.colors.menuTitle,
       fontStyle: 'bold'
     });
     title.setOrigin(0.5);
@@ -21,36 +44,118 @@ export class MenuScene extends Phaser.Scene {
     // Subtitle
     const subtitle = this.add.text(width / 2, height / 2 - 40, 'Territory Capture Game', {
       fontSize: '24px',
-      color: '#ecf0f1'
+      color: GameConfig.colors.menuText
     });
     subtitle.setOrigin(0.5);
 
     // Start button
     const startButton = this.add.text(width / 2, height / 2 + 40, 'START GAME', {
       fontSize: '32px',
-      color: '#2ecc71',
+      color: GameConfig.colors.menuButton,
       backgroundColor: '#1a1a1a',
       padding: { x: 20, y: 10 }
     });
     startButton.setOrigin(0.5);
     startButton.setInteractive({ useHandCursor: true });
 
+    // Track focus state for keyboard navigation
+    let startButtonFocused = false;
+
     startButton.on('pointerover', () => {
-      startButton.setColor('#27ae60');
+      startButton.setColor(GameConfig.colors.menuButtonHover);
+      startButton.setStroke('#FFD700', 2);
+      startButtonFocused = true;
     });
 
     startButton.on('pointerout', () => {
-      startButton.setColor('#2ecc71');
+      if (!startButtonFocused) {
+        startButton.setColor(GameConfig.colors.menuButton);
+        startButton.setStroke('', 0);
+      }
     });
 
     startButton.on('pointerdown', () => {
-      console.log('[MenuScene] START GAME clicked, transitioning to GameScene');
-      this.scene.start('GameScene');
+      console.log('[MenuScene] START GAME clicked, starting at Level 1');
+      try {
+        this.scene.start('GameScene', { level: 1 });
+      } catch (error) {
+        console.error('[MenuScene] Failed to start GameScene:', error);
+      }
     });
+
+    // Keyboard focus indicator - Tab key support
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault();
+      if (!startButtonFocused) {
+        startButton.setColor(GameConfig.colors.menuButtonHover);
+        startButton.setStroke('#FFD700', 3);
+        startButtonFocused = true;
+      } else {
+        startButton.setColor(GameConfig.colors.menuButton);
+        startButton.setStroke('', 0);
+        startButtonFocused = false;
+      }
+    });
+
+    // Keyboard accessibility - Enter/Space to start game
+    this.input.keyboard?.on('keydown-ENTER', () => {
+      console.log('[MenuScene] START GAME via Enter key');
+      try {
+        this.scene.start('GameScene', { level: 1 });
+      } catch (error) {
+        console.error('[MenuScene] Failed to start GameScene:', error);
+      }
+    });
+
+    this.input.keyboard?.on('keydown-SPACE', () => {
+      console.log('[MenuScene] START GAME via Space key');
+      try {
+        this.scene.start('GameScene', { level: 1 });
+      } catch (error) {
+        console.error('[MenuScene] Failed to start GameScene:', error);
+      }
+    });
+
+    // If player died, show option to retry last level
+    if (data?.lastLevel) {
+      const retryButton = this.add.text(width / 2, height / 2 + 100, `Retry Level ${data.lastLevel}`, {
+        fontSize: '24px',
+        color: GameConfig.colors.retryButton,
+        backgroundColor: '#1a1a1a',
+        padding: { x: 15, y: 8 }
+      });
+      retryButton.setOrigin(0.5);
+      retryButton.setInteractive({ useHandCursor: true });
+
+      // Track focus state for keyboard navigation
+      let retryButtonFocused = false;
+
+      retryButton.on('pointerover', () => {
+        retryButton.setColor(GameConfig.colors.retryButtonHover);
+        retryButton.setStroke('#FFD700', 2);
+        retryButtonFocused = true;
+      });
+
+      retryButton.on('pointerout', () => {
+        if (!retryButtonFocused) {
+          retryButton.setColor(GameConfig.colors.retryButton);
+          retryButton.setStroke('', 0);
+        }
+      });
+
+      retryButton.on('pointerdown', () => {
+        console.log(`[MenuScene] Retry Level ${data.lastLevel} clicked`);
+        try {
+          this.scene.start('GameScene', { level: data.lastLevel });
+        } catch (error) {
+          console.error('[MenuScene] Failed to start GameScene:', error);
+        }
+      });
+    }
 
     // Instructions
     const instructions = this.add.text(width / 2, height - 80,
-      'Use WASD or Arrow Keys to move\nCapture 95% of territory to win!', {
+      'Use WASD or Arrow Keys to move\nCapture territory to win each level!', {
       fontSize: '16px',
       color: '#95a5a6',
       align: 'center'

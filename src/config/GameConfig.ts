@@ -16,6 +16,15 @@ export const GameConfig = {
     mouse: 0xFFA500,        // Orange cat player
     cat: 0x2C3E50,          // Dark pirate
     border: 0x8B7355,       // Brown border
+    // UI/Menu colors
+    menuTitle: '#FFD700',   // Gold for titles
+    menuText: '#ECF0F1',    // Light gray for text
+    menuButton: '#2ECC71',  // Green for primary buttons
+    menuButtonHover: '#27AE60', // Darker green for hover
+    retryButton: '#E74C3C', // Red for retry
+    retryButtonHover: '#C0392B', // Darker red for hover
+    white: '#FFFFFF',       // White text
+    success: '#00FF00',     // Bright green for success
   },
 
   // Game settings

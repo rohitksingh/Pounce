@@ -49,7 +49,14 @@
       "Bash(gh release view:*)",
       "Bash(brew install:*)",
       "Bash(gh auth:*)",
-      "Bash(gh release create:*)"
+      "Bash(gh release create:*)",
+      "Bash(npm version:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git pull:*)",
+      "Bash(npm outdated:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

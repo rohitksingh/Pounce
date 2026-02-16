@@ -35,7 +35,10 @@ export class BootScene extends Phaser.Scene {
       this.loadingText.destroy();
     });
 
-    // Create placeholder textures for sprites (background/terrain only)
+    // Load cat animation frames
+    this.loadCatAnimations();
+
+    // Create placeholder textures for other sprites
     this.createSpriteTextures();
   }
 
@@ -62,6 +65,28 @@ export class BootScene extends Phaser.Scene {
     this.progressBar = this.add.graphics();
   }
 
+  private loadCatAnimations(): void {
+    // Load Idle animation frames (10 frames)
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-idle-${i}`, `assets/sprites/cat/Idle (${i}).png`);
+    }
+
+    // Load Walk animation frames (10 frames)
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-walk-${i}`, `assets/sprites/cat/Walk (${i}).png`);
+    }
+
+    // Load Hurt animation frames (10 frames) - for when hit
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-hurt-${i}`, `assets/sprites/cat/Hurt (${i}).png`);
+    }
+
+    // Load Dead animation frames (10 frames) - for game over
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`cat-dead-${i}`, `assets/sprites/cat/Dead (${i}).png`);
+    }
+  }
+
   create() {
     console.log('[BootScene] Boot complete, transitioning to MenuScene');
 
@@ -74,8 +99,25 @@ export class BootScene extends Phaser.Scene {
   }
 
   private createSpriteTextures(): void {
-    // Note: Cat and pirate sprites are now procedurally generated in-game
-    // Only background textures are created here
+    const size = 32;
+    const radius = 12;
+
+    // Cat sprite is now loaded from animation frames, no need to create placeholder
+
+    // Create PIRATE sprite (dark enemy with skull accent)
+    const pirateTexture = this.add.graphics();
+    pirateTexture.fillStyle(0x2C3E50, 1); // Dark blue-gray
+    pirateTexture.fillCircle(size / 2, size / 2, radius);
+    pirateTexture.lineStyle(2, 0x1A252F, 1); // Darker outline
+    pirateTexture.strokeCircle(size / 2, size / 2, radius);
+    // Add simple "hat" triangle
+    pirateTexture.fillStyle(0x1A1A1A, 1);
+    pirateTexture.fillTriangle(size / 2 - 10, size / 2 - 6, size / 2 + 10, size / 2 - 6, size / 2, size / 2 - 14);
+    // Red accent (bandana)
+    pirateTexture.fillStyle(0xE74C3C, 1);
+    pirateTexture.fillRect(size / 2 - 10, size / 2 - 6, 20, 3);
+    pirateTexture.generateTexture('pirate', size, size);
+    pirateTexture.destroy();
 
     // Create SEA background texture (256x256 tileable)
     const seaSize = 256;

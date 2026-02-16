@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
-import { CatGraphics } from '../utils/CatGraphics';
 
 enum Direction {
   NONE = 0,
@@ -11,7 +10,7 @@ enum Direction {
   RIGHT = 4
 }
 
-export class Mouse extends Phaser.GameObjects.Container {
+export class Mouse extends Phaser.GameObjects.Sprite {
   private gridX: number;
   private gridY: number;
   private visualX: number; // Smooth interpolated position for rendering
@@ -26,26 +25,22 @@ export class Mouse extends Phaser.GameObjects.Container {
   private moveDelay: number = 150; // milliseconds between moves
   private baseMoveDelay: number = 150; // Base delay (used to calculate speed changes)
   private lerpSpeed: number = 0.3; // Interpolation speed (0-1, higher = faster)
-  private catGraphics: Phaser.GameObjects.Graphics;
-  private tailTween?: Phaser.Tweens.Tween;
 
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
     const cellSize = GameConfig.cellSize;
-    super(scene, cellSize + cellSize / 2, cellSize + cellSize / 2);
+    super(scene, cellSize + cellSize / 2, cellSize + cellSize / 2, 'cat-idle-1');
 
     scene.add.existing(this);
-    this.setDepth(10);
+    this.setOrigin(0.5, 0.5);
+    // Scale down from 542x474 to roughly fit 2-3 cells
+    this.setScale(0.05);
 
     this.gridManager = gridManager;
 
-    // Create procedural cat graphics
-    this.catGraphics = scene.add.graphics();
-    const catSize = 35; // Visible size in pixels
-    CatGraphics.drawCat(this.catGraphics, catSize, GameConfig.colors.mouse, 'player');
-    this.add(this.catGraphics);
-
-    // Add tail sway animation
-    this.createTailAnimation();
+    // Create animations
+    this.createAnimations();
+    // Start with idle animation
+    this.play('cat-idle');
 
     // Start position - random location in captured territory
     const spawnCell = gridManager.getRandomCapturedCell();
@@ -82,18 +77,58 @@ export class Mouse extends Phaser.GameObjects.Container {
     this.handleAutoMovement(delta);
     this.updateVisualPosition();
     this.updateSpritePosition();
+    this.updateAnimation();
   }
 
-  private createTailAnimation(): void {
-    // Add a subtle tail sway animation for liveliness
-    this.tailTween = this.scene.tweens.add({
-      targets: this.catGraphics,
-      angle: { from: -3, to: 3 },
-      duration: 1000,
-      ease: 'Sine.easeInOut',
-      yoyo: true,
-      repeat: -1
-    });
+  private createAnimations(): void {
+    // Create idle animation
+    if (!this.scene.anims.exists('cat-idle')) {
+      this.scene.anims.create({
+        key: 'cat-idle',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-idle-${i + 1}` })),
+        frameRate: 10,
+        repeat: -1
+      });
+    }
+
+    // Create walk animation
+    if (!this.scene.anims.exists('cat-walk')) {
+      this.scene.anims.create({
+        key: 'cat-walk',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-walk-${i + 1}` })),
+        frameRate: 15,
+        repeat: -1
+      });
+    }
+
+    // Create hurt animation
+    if (!this.scene.anims.exists('cat-hurt')) {
+      this.scene.anims.create({
+        key: 'cat-hurt',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-hurt-${i + 1}` })),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+
+    // Create dead animation
+    if (!this.scene.anims.exists('cat-dead')) {
+      this.scene.anims.create({
+        key: 'cat-dead',
+        frames: Array.from({ length: 10 }, (_, i) => ({ key: `cat-dead-${i + 1}` })),
+        frameRate: 10,
+        repeat: 0
+      });
+    }
+  }
+
+  private updateAnimation(): void {
+    // Play walk animation when moving, idle when stopped
+    if (this.currentDirection !== Direction.NONE && this.anims.currentAnim?.key !== 'cat-walk') {
+      this.play('cat-walk');
+    } else if (this.currentDirection === Direction.NONE && this.anims.currentAnim?.key !== 'cat-idle') {
+      this.play('cat-idle');
+    }
   }
 
   private updateVisualPosition(): void {
@@ -106,13 +141,6 @@ export class Mouse extends Phaser.GameObjects.Container {
     const cellSize = GameConfig.cellSize;
     this.x = this.visualX * cellSize + cellSize / 2;
     this.y = this.visualY * cellSize + cellSize / 2;
-
-    // Flip cat based on movement direction
-    if (this.currentDirection === Direction.LEFT) {
-      this.catGraphics.setScale(-1, 1);
-    } else if (this.currentDirection === Direction.RIGHT) {
-      this.catGraphics.setScale(1, 1);
-    }
   }
 
   private handleInput(): void {
@@ -281,16 +309,5 @@ export class Mouse extends Phaser.GameObjects.Container {
 
     // Reset direction to stopped
     this.currentDirection = Direction.NONE;
-  }
-
-  destroy(fromScene?: boolean): void {
-    if (this.tailTween) {
-      this.tailTween.remove();
-      this.tailTween = undefined;
-    }
-    if (this.catGraphics) {
-      this.catGraphics.destroy();
-    }
-    super.destroy(fromScene);
   }
 }

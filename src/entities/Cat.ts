@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
-import { CatGraphics } from '../utils/CatGraphics';
 
 export enum CatState {
   NORMAL = 'normal',
@@ -9,7 +8,7 @@ export enum CatState {
   SLOWED = 'slowed'
 }
 
-export class Cat extends Phaser.GameObjects.Container {
+export class Cat extends Phaser.Physics.Arcade.Sprite {
   private gridManager: GridManager;
   private lastValidX: number;
   private lastValidY: number;
@@ -18,11 +17,9 @@ export class Cat extends Phaser.GameObjects.Container {
   private stateOverlay?: Phaser.GameObjects.Graphics;
   private savedVelocityX: number = 0;
   private savedVelocityY: number = 0;
-  private catGraphics: Phaser.GameObjects.Graphics;
-  declare body: Phaser.Physics.Arcade.Body;
 
   constructor(scene: Phaser.Scene, x: number, y: number, gridManager: GridManager) {
-    super(scene, x, y);
+    super(scene, x, y, 'pirate');
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -32,37 +29,33 @@ export class Cat extends Phaser.GameObjects.Container {
     this.lastValidY = y;
     this.baseSpeed = GameConfig.catSpeed;
 
-    // Create procedural pirate cat graphics
-    this.catGraphics = scene.add.graphics();
-    const catSize = 35; // Visible size in pixels
-    const pirateColor = CatGraphics.getRandomPirateColor();
-    CatGraphics.drawCat(this.catGraphics, catSize, pirateColor, 'pirate');
-    this.add(this.catGraphics);
+    // Scale sprite to match cell size (doubled for better visibility)
+    const cellSize = GameConfig.cellSize;
+    this.setOrigin(0.5, 0.5);
+    this.setScale((cellSize / 32) * 2);
 
-    this.setDepth(5);
-
-    // Set random velocity using physics body
+    // Set random velocity
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const speed = this.baseSpeed;
     const velX = Math.cos(angle) * speed;
     const velY = Math.sin(angle) * speed;
-    this.body.setVelocity(velX, velY);
+    this.setVelocity(velX, velY);
 
     // Save initial velocity
     this.savedVelocityX = velX;
     this.savedVelocityY = velY;
 
-    // Set up physics body
-    this.body.setCircle(GameConfig.cellSize * 0.4);
-    this.body.setBounce(1, 1);
-    this.body.setCollideWorldBounds(true);
+    this.setCircle(GameConfig.cellSize * 0.4);
+    this.setBounce(1, 1);
+    this.setCollideWorldBounds(true);
 
     // Create state overlay graphics
     this.stateOverlay = this.scene.add.graphics();
     this.stateOverlay.setDepth(6); // Above cat sprite
   }
 
-  preUpdate(_time: number, delta: number): void {
+  preUpdate(time: number, delta: number): void {
+    super.preUpdate(time, delta);
 
     // Update state overlay position
     this.updateStateOverlay();
@@ -86,13 +79,13 @@ export class Cat extends Phaser.GameObjects.Container {
       this.y = this.lastValidY;
 
       // Bounce by reversing velocity
-      this.body.setVelocity(-this.body.velocity.x, -this.body.velocity.y);
+      this.setVelocity(-this.body!.velocity.x, -this.body!.velocity.y);
       return;
     }
 
     // Calculate next position based on velocity
-    const nextX = this.x + (this.body.velocity.x * delta / 1000);
-    const nextY = this.y + (this.body.velocity.y * delta / 1000);
+    const nextX = this.x + (this.body!.velocity.x * delta / 1000);
+    const nextY = this.y + (this.body!.velocity.y * delta / 1000);
 
     // Check if next position would enter captured territory
     const nextGridX = Math.floor(nextX / cellSize);
@@ -107,22 +100,15 @@ export class Cat extends Phaser.GameObjects.Container {
       // Determine which axis to bounce on
       if (Math.abs(dx) > Math.abs(dy)) {
         // Horizontal collision - reverse X velocity
-        this.body.setVelocity(-this.body.velocity.x, this.body.velocity.y);
+        this.setVelocity(-this.body!.velocity.x, this.body!.velocity.y);
       } else {
         // Vertical collision - reverse Y velocity
-        this.body.setVelocity(this.body.velocity.x, -this.body.velocity.y);
+        this.setVelocity(this.body!.velocity.x, -this.body!.velocity.y);
       }
     } else {
       // Update last valid position (cat is in void)
       this.lastValidX = this.x;
       this.lastValidY = this.y;
-    }
-
-    // Flip cat based on movement direction
-    if (this.body.velocity.x < -5) {
-      this.catGraphics.setScale(-1, 1);
-    } else if (this.body.velocity.x > 5) {
-      this.catGraphics.setScale(1, 1);
     }
   }
 
@@ -131,8 +117,8 @@ export class Cat extends Phaser.GameObjects.Container {
     this.catState = newState;
 
     // Get current velocity before state change
-    const currentVelX = this.body.velocity.x;
-    const currentVelY = this.body.velocity.y;
+    const currentVelX = this.body!.velocity.x;
+    const currentVelY = this.body!.velocity.y;
     const currentSpeed = Math.sqrt(currentVelX * currentVelX + currentVelY * currentVelY);
 
     // Save current velocity if it's non-zero
@@ -146,7 +132,7 @@ export class Cat extends Phaser.GameObjects.Container {
       if (this.body) {
         this.body.enable = false;
       }
-      this.body.setVelocity(0, 0);
+      this.setVelocity(0, 0);
     } else if (newState === CatState.SLOWED) {
       // Re-enable physics if coming from frozen
       if (oldState === CatState.FROZEN && this.body) {
@@ -161,14 +147,14 @@ export class Cat extends Phaser.GameObjects.Container {
         const savedSpeed = Math.sqrt(this.savedVelocityX * this.savedVelocityX + this.savedVelocityY * this.savedVelocityY);
         const dirX = this.savedVelocityX / savedSpeed;
         const dirY = this.savedVelocityY / savedSpeed;
-        this.body.setVelocity(
+        this.setVelocity(
           dirX * this.baseSpeed * multiplier,
           dirY * this.baseSpeed * multiplier
         );
       } else {
         // Generate new random direction
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        this.body.setVelocity(
+        this.setVelocity(
           Math.cos(angle) * this.baseSpeed * multiplier,
           Math.sin(angle) * this.baseSpeed * multiplier
         );
@@ -184,14 +170,14 @@ export class Cat extends Phaser.GameObjects.Container {
         const savedSpeed = Math.sqrt(this.savedVelocityX * this.savedVelocityX + this.savedVelocityY * this.savedVelocityY);
         const dirX = this.savedVelocityX / savedSpeed;
         const dirY = this.savedVelocityY / savedSpeed;
-        this.body.setVelocity(
+        this.setVelocity(
           dirX * this.baseSpeed,
           dirY * this.baseSpeed
         );
       } else {
         // Generate new random direction
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        this.body.setVelocity(
+        this.setVelocity(
           Math.cos(angle) * this.baseSpeed,
           Math.sin(angle) * this.baseSpeed
         );
@@ -239,9 +225,6 @@ export class Cat extends Phaser.GameObjects.Container {
     if (this.stateOverlay) {
       this.stateOverlay.destroy();
       this.stateOverlay = undefined;
-    }
-    if (this.catGraphics) {
-      this.catGraphics.destroy();
     }
     super.destroy(fromScene);
   }

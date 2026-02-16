@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-02-16
+
+### Changed
+- Cleaned up codebase by removing 20 unnecessary files
+  - 12 test report artifacts (moved to test documentation)
+  - 7 macOS .DS_Store system files
+  - 1 resolved agent memory report
+- Enhanced .gitignore to prevent future test artifacts and system files
+- 30% reduction in root directory clutter
+- Zero functional changes to game code
+
+### Technical
+- Updated agent memory systems for better workflow tracking
+- Improved bash command safety patterns
+
 ## [1.1.0] - 2026-02-15
 
 ### Added

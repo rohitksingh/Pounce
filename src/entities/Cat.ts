@@ -18,6 +18,13 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
   private savedVelocityX: number = 0;
   private savedVelocityY: number = 0;
 
+  // Visual enhancement elements
+  private particleTrail?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private glowGraphics?: Phaser.GameObjects.Graphics;
+  private shadowSprite?: Phaser.GameObjects.Ellipse;
+  private iceParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private chainParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
+
   constructor(scene: Phaser.Scene, x: number, y: number, gridManager: GridManager) {
     super(scene, x, y, 'pirate');
 
@@ -29,10 +36,11 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     this.lastValidY = y;
     this.baseSpeed = GameConfig.catSpeed;
 
-    // Scale sprite to match cell size (doubled for better visibility)
+    // Scale sprite to match cell size - proportional to mouse (0.15 scale factor)
     const cellSize = GameConfig.cellSize;
     this.setOrigin(0.5, 0.5);
-    this.setScale((cellSize / 32) * 2);
+    // Pirate sprite is 32x32, scale to match mouse visibility
+    this.setScale((cellSize / 32) * 3); // Increased from 2 to 3 to match mouse at 0.15
 
     // Set random velocity
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
@@ -52,6 +60,9 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
     // Create state overlay graphics
     this.stateOverlay = this.scene.add.graphics();
     this.stateOverlay.setDepth(6); // Above cat sprite
+
+    // Create visual enhancements
+    this.createVisualEffects();
   }
 
   preUpdate(time: number, delta: number): void {
@@ -59,6 +70,9 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
 
     // Update state overlay position
     this.updateStateOverlay();
+
+    // Update visual effects
+    this.updateVisualEffects();
 
     // If frozen, physics body is disabled, skip movement logic
     if (this.catState === CatState.FROZEN) {
@@ -226,6 +240,142 @@ export class Cat extends Phaser.Physics.Arcade.Sprite {
       this.stateOverlay.destroy();
       this.stateOverlay = undefined;
     }
+
+    // Cleanup visual effects
+    if (this.particleTrail) {
+      this.particleTrail.destroy();
+      this.particleTrail = undefined;
+    }
+    if (this.glowGraphics) {
+      this.glowGraphics.destroy();
+      this.glowGraphics = undefined;
+    }
+    if (this.shadowSprite) {
+      this.shadowSprite.destroy();
+      this.shadowSprite = undefined;
+    }
+    if (this.iceParticles) {
+      this.iceParticles.destroy();
+      this.iceParticles = undefined;
+    }
+    if (this.chainParticles) {
+      this.chainParticles.destroy();
+      this.chainParticles = undefined;
+    }
+
     super.destroy(fromScene);
+  }
+
+  // ===============================
+  // Visual Enhancement Methods
+  // ===============================
+
+  private createVisualEffects(): void {
+    // Create drop shadow
+    this.shadowSprite = this.scene.add.ellipse(this.x, this.y + 5, 30, 15, 0x000000, 0.3);
+    this.shadowSprite.setDepth(4.5); // Just below cat (depth 5)
+
+    // Create glow graphics (red outline effect)
+    this.glowGraphics = this.scene.add.graphics();
+    this.glowGraphics.setDepth(4.8); // Between shadow and cat
+
+    // Create particle trail (if texture exists)
+    if (this.scene.textures.exists('trail-particle')) {
+      this.particleTrail = this.scene.add.particles(this.x, this.y, 'trail-particle', {
+        speed: { min: 10, max: 25 },
+        scale: { start: 0.5, end: 0 },
+        alpha: { start: 0.7, end: 0 },
+        lifespan: 500,
+        frequency: 60,
+        tint: 0xFF4500, // Red-orange for pirates
+        blendMode: Phaser.BlendModes.ADD
+      });
+      this.particleTrail.setDepth(4.5); // Below cat
+    }
+  }
+
+  private updateVisualEffects(): void {
+    // Update shadow position
+    if (this.shadowSprite) {
+      this.shadowSprite.setPosition(this.x, this.y + 5);
+    }
+
+    // Update glow outline
+    if (this.glowGraphics) {
+      this.glowGraphics.clear();
+
+      // Draw glowing red outline (pulsing effect)
+      const pulseAlpha = 0.4 + Math.sin(Date.now() * 0.004) * 0.2;
+      this.glowGraphics.lineStyle(3, 0xFF0000, pulseAlpha);
+      this.glowGraphics.strokeCircle(this.x, this.y, this.displayWidth / 2 + 3);
+    }
+
+    // Update particle trail position
+    if (this.particleTrail) {
+      this.particleTrail.setPosition(this.x, this.y);
+
+      // Pause particles if frozen
+      if (this.catState === CatState.FROZEN) {
+        this.particleTrail.stop();
+      } else {
+        this.particleTrail.start();
+      }
+    }
+
+    // Update ice particles for frozen state
+    if (this.catState === CatState.FROZEN) {
+      if (!this.iceParticles && this.scene.textures.exists('trail-particle')) {
+        // Create ice particles around frozen cat
+        this.iceParticles = this.scene.add.particles(this.x, this.y, 'trail-particle', {
+          speed: { min: 5, max: 15 },
+          scale: { start: 0.3, end: 0 },
+          alpha: { start: 0.8, end: 0 },
+          lifespan: 800,
+          frequency: 100,
+          tint: 0x3498DB, // Ice blue
+          blendMode: Phaser.BlendModes.ADD,
+          moveToX: this.x,
+          moveToY: this.y,
+          radial: true
+        });
+        this.iceParticles.setDepth(6.5); // Above cat overlay
+      }
+
+      if (this.iceParticles) {
+        this.iceParticles.setPosition(this.x, this.y);
+      }
+    } else {
+      // Remove ice particles when not frozen
+      if (this.iceParticles) {
+        this.iceParticles.destroy();
+        this.iceParticles = undefined;
+      }
+    }
+
+    // Update chain particles for slowed state
+    if (this.catState === CatState.SLOWED) {
+      if (!this.chainParticles && this.scene.textures.exists('trail-particle')) {
+        this.chainParticles = this.scene.add.particles(this.x, this.y, 'trail-particle', {
+          speed: { min: 3, max: 8 },
+          scale: { start: 0.4, end: 0 },
+          alpha: { start: 0.6, end: 0 },
+          lifespan: 600,
+          frequency: 120,
+          tint: 0x7F8C8D, // Gray for chains
+          blendMode: Phaser.BlendModes.NORMAL
+        });
+        this.chainParticles.setDepth(6.5); // Above cat overlay
+      }
+
+      if (this.chainParticles) {
+        this.chainParticles.setPosition(this.x, this.y);
+      }
+    } else {
+      // Remove chain particles when not slowed
+      if (this.chainParticles) {
+        this.chainParticles.destroy();
+        this.chainParticles = undefined;
+      }
+    }
   }
 }

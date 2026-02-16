@@ -26,16 +26,24 @@ export class Mouse extends Phaser.GameObjects.Sprite {
   private baseMoveDelay: number = 150; // Base delay (used to calculate speed changes)
   private lerpSpeed: number = 0.3; // Interpolation speed (0-1, higher = faster)
 
+  // Visual enhancement elements
+  private particleTrail?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private glowGraphics?: Phaser.GameObjects.Graphics;
+  private shadowSprite?: Phaser.GameObjects.Ellipse;
+
   constructor(scene: Phaser.Scene, gridManager: GridManager) {
     const cellSize = GameConfig.cellSize;
     super(scene, cellSize + cellSize / 2, cellSize + cellSize / 2, 'cat-idle-1');
 
     scene.add.existing(this);
     this.setOrigin(0.5, 0.5);
-    // Scale down from 542x474 to roughly fit 2-3 cells
-    this.setScale(0.05);
+    // Scale up from 0.05 to 0.15 (3x bigger, animations more visible)
+    this.setScale(0.15);
 
     this.gridManager = gridManager;
+
+    // Create visual enhancements
+    this.createVisualEffects();
 
     // Create animations
     this.createAnimations();
@@ -78,6 +86,7 @@ export class Mouse extends Phaser.GameObjects.Sprite {
     this.updateVisualPosition();
     this.updateSpritePosition();
     this.updateAnimation();
+    this.updateVisualEffects();
   }
 
   private createAnimations(): void {
@@ -144,6 +153,9 @@ export class Mouse extends Phaser.GameObjects.Sprite {
   }
 
   private handleInput(): void {
+    // Store previous direction for rotation detection
+    const oldDirection = this.currentDirection;
+
     // Change direction based on key press
     if (Phaser.Input.Keyboard.JustDown(this.cursors.left!) || Phaser.Input.Keyboard.JustDown(this.wasd.A)) {
       this.currentDirection = Direction.LEFT;
@@ -153,6 +165,11 @@ export class Mouse extends Phaser.GameObjects.Sprite {
       this.currentDirection = Direction.UP;
     } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down!) || Phaser.Input.Keyboard.JustDown(this.wasd.S)) {
       this.currentDirection = Direction.DOWN;
+    }
+
+    // Detect direction change for rotation and particle burst
+    if (oldDirection !== Direction.NONE && this.currentDirection !== oldDirection) {
+      this.onDirectionChange();
     }
   }
 
@@ -309,5 +326,149 @@ export class Mouse extends Phaser.GameObjects.Sprite {
 
     // Reset direction to stopped
     this.currentDirection = Direction.NONE;
+  }
+
+  // ===============================
+  // Visual Enhancement Methods
+  // ===============================
+
+  private createVisualEffects(): void {
+    // Create drop shadow
+    this.shadowSprite = this.scene.add.ellipse(this.x, this.y + 5, 30, 15, 0x000000, 0.3);
+    this.shadowSprite.setDepth(9); // Just below mouse (depth 10)
+
+    // Create glow graphics (outline effect)
+    this.glowGraphics = this.scene.add.graphics();
+    this.glowGraphics.setDepth(9.5); // Between shadow and mouse
+
+    // Create particle trail (if texture exists)
+    if (this.scene.textures.exists('trail-particle')) {
+      this.particleTrail = this.scene.add.particles(this.x, this.y, 'trail-particle', {
+        speed: { min: 5, max: 15 },
+        scale: { start: 0.4, end: 0 },
+        alpha: { start: 0.8, end: 0 },
+        lifespan: 400,
+        frequency: 50,
+        tint: 0xFFD700, // Gold on captured territory (default)
+        blendMode: Phaser.BlendModes.ADD
+      });
+      this.particleTrail.setDepth(9); // Below mouse
+    } else {
+      // Create fallback particle texture
+      this.createParticleTexture();
+
+      // Try again after creating texture
+      if (this.scene.textures.exists('trail-particle')) {
+        this.particleTrail = this.scene.add.particles(this.x, this.y, 'trail-particle', {
+          speed: { min: 5, max: 15 },
+          scale: { start: 0.4, end: 0 },
+          alpha: { start: 0.8, end: 0 },
+          lifespan: 400,
+          frequency: 50,
+          tint: 0xFFD700,
+          blendMode: Phaser.BlendModes.ADD
+        });
+        this.particleTrail.setDepth(9);
+      }
+    }
+  }
+
+  private createParticleTexture(): void {
+    // Create simple particle texture if it doesn't exist
+    const graphics = this.scene.add.graphics();
+    graphics.fillStyle(0xFFFFFF, 1);
+    graphics.fillCircle(4, 4, 4);
+    graphics.generateTexture('trail-particle', 8, 8);
+    graphics.destroy();
+  }
+
+  private updateVisualEffects(): void {
+    // Update shadow position
+    if (this.shadowSprite) {
+      this.shadowSprite.setPosition(this.x, this.y + 5);
+    }
+
+    // Update glow outline
+    if (this.glowGraphics) {
+      this.glowGraphics.clear();
+
+      // Draw glowing outline (pulsing effect)
+      const pulseAlpha = 0.3 + Math.sin(Date.now() * 0.005) * 0.2;
+      this.glowGraphics.lineStyle(3, 0xFFD700, pulseAlpha);
+      this.glowGraphics.strokeCircle(this.x, this.y, this.displayWidth / 2 + 2);
+    }
+
+    // Update particle trail position and color
+    if (this.particleTrail) {
+      this.particleTrail.setPosition(this.x, this.y);
+
+      // Change particle color based on territory
+      const particleColor = this.isDrawingTrail ? 0x00FFFF : 0xFFD700; // Cyan in void, gold on captured
+      // Update particle tint via config property
+      this.particleTrail.particleTint = particleColor;
+    }
+  }
+
+  private onDirectionChange(): void {
+    // Smooth rotation tween
+    const targetRotation = this.getRotationForDirection(this.currentDirection);
+
+    this.scene.tweens.add({
+      targets: this,
+      angle: targetRotation,
+      duration: 150,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Dust particle burst on direction change
+    if (this.scene.textures.exists('trail-particle')) {
+      const burstParticles = this.scene.add.particles(this.x, this.y, 'trail-particle', {
+        speed: { min: 30, max: 60 },
+        scale: { start: 0.5, end: 0 },
+        alpha: { start: 0.7, end: 0 },
+        lifespan: 300,
+        quantity: 8,
+        tint: 0xFFFFFF,
+        blendMode: Phaser.BlendModes.ADD
+      });
+
+      // Auto-destroy after 500ms
+      this.scene.time.delayedCall(500, () => {
+        burstParticles.destroy();
+      });
+    }
+  }
+
+  private getRotationForDirection(direction: Direction): number {
+    switch (direction) {
+      case Direction.UP:
+        return -90;
+      case Direction.DOWN:
+        return 90;
+      case Direction.LEFT:
+        return 180;
+      case Direction.RIGHT:
+        return 0;
+      default:
+        return this.angle; // Keep current rotation
+    }
+  }
+
+  destroy(fromScene?: boolean): void {
+    // Cleanup visual effects
+    if (this.particleTrail) {
+      this.particleTrail.destroy();
+      this.particleTrail = undefined;
+    }
+    if (this.glowGraphics) {
+      this.glowGraphics.destroy();
+      this.glowGraphics = undefined;
+    }
+    if (this.shadowSprite) {
+      this.shadowSprite.destroy();
+      this.shadowSprite = undefined;
+    }
+
+    super.destroy(fromScene);
   }
 }

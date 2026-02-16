@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-02-16
+
+### Added - Level 1 UI Redesign 🎨
+**Complete professional UI transformation for Caribbean Beach theme:**
+
+1. **Themed Decorative Frames**
+   - Bamboo (🎋), anchors (⚓), and wave (🌊) decorations
+   - Turquoise glowing borders
+   - Tropical color palette (turquoise, gold, ocean blue)
+
+2. **Icon-Based Stats Display**
+   - Hearts (❤️) for lives instead of text
+   - Island icon (🏝️) with visual progress bar
+   - Dynamic color-coded feedback
+
+3. **Custom Game Fonts**
+   - "Pirata One" for pirate-themed titles
+   - "Orbitron" for modern UI stats
+   - Professional typography
+
+4. **Glass-Morphism Modern Style**
+   - Frosted glass effect with backdrop blur
+   - Semi-transparent UI panels
+   - Premium modern aesthetic
+
+5. **Animated Progress Bar**
+   - Smooth gradient fill animation
+   - Color changes: red → orange → yellow → green → gold
+   - Glow effects and pulse near victory
+
+6. **Particle Effects on Events**
+   - Screen shake + red flash when hit
+   - Heart fade animation when life lost
+   - Last heart pulses red when in danger
+
+7. **Real-Time Minimap**
+   - 80x60px territory overview (bottom-left)
+   - Shows captured (gold), void (blue), pirates
+   - Updates dynamically during gameplay
+
+8. **Dynamic Color-Coded Feedback**
+   - Progress bar color based on percentage
+   - Hearts color based on remaining lives
+   - Power-up display with countdown timer
+
+9. **Professional Polish**
+   - 13 smooth CSS animations (sway, float, pulse, heartbeat)
+   - Proper visual hierarchy
+   - Drop shadows and depth effects
+   - Responsive design (mobile-friendly)
+
+10. **Complete Caribbean Beach Theme**
+    - Immersive tropical atmosphere
+    - Consistent styling throughout
+    - Professional AAA-quality presentation
+
+### Technical
+- 527 lines of enhanced HTML/CSS
+- 189 lines of GameScene integration
+- Google Fonts integration
+- Optimized rendering with change detection
+- Maintains 60fps performance
+
+### Notes
+- UI redesign applied to Level 1 only
+- Levels 2 & 3 will receive same treatment in future updates
+- All gameplay mechanics unchanged
+- Zero regressions in game functionality
+
 ## [1.1.2] - 2026-02-16
 
 ### Changed

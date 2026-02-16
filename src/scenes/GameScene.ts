@@ -5,6 +5,7 @@ import { Mouse } from '../entities/Mouse';
 import { Cat, CatState } from '../entities/Cat';
 import { PowerUp, PowerUpType } from '../entities/PowerUp';
 import { FloodFill } from '../utils/FloodFill';
+import { getLevelConfig, LEVELS, LevelDefinition } from '../config/LevelConfig';
 
 export class GameScene extends Phaser.Scene {
   private gridManager!: GridManager;
@@ -17,6 +18,10 @@ export class GameScene extends Phaser.Scene {
   private gameOver: boolean = false;
   private uiElement: HTMLElement | null = null;
   private lastRenderedTrailLength: number = 0;
+
+  // Level system
+  private currentLevel: number = 1;
+  private levelConfig: LevelDefinition | null = null;
 
   // Power-up system state
   private powerUpSpawnTimer: number = 0;
@@ -40,9 +45,29 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
-  create() {
+  create(data?: { level?: number }) {
+    // Initialize level system
+    this.currentLevel = data?.level || 1;
+    this.levelConfig = getLevelConfig(this.currentLevel);
+    this.applyLevelConfig();
+
+    // Reset game state for new level
+    this.lives = GameConfig.initialLives;
+    this.gameOver = false;
+    this.cats = [];
+    this.powerUps = [];
+    this.activePowerUpEffect = null;
+    this.powerUpEffectTimer = 0;
+    this.powerUpSpawnTimer = GameConfig.powerUps.spawnInterval;
+    this.lastRenderedTrailLength = 0;
+    this.palmTreePositions = [];
+    this.lastCapturedCells = 0;
+    this.waveTime = 0;
+
     console.log('[GameScene] Game scene started');
+    console.log(`[GameScene] Level ${this.currentLevel}: ${this.levelConfig.name}`);
     console.log(`[GameScene] Win condition: ${GameConfig.winPercentage}% territory`);
+    console.log(`[GameScene] Pirates: ${GameConfig.initialCats} | Speed: ${GameConfig.catSpeed}`);
     console.log(`[GameScene] Grid size: ${GameConfig.gridCols}x${GameConfig.gridRows} = ${GameConfig.gridCols * GameConfig.gridRows} cells`);
 
     // Create animated background layers
@@ -79,17 +104,39 @@ export class GameScene extends Phaser.Scene {
     this.events.on('mouse-hit-trail', this.handleMouseHit, this);
 
     // Get reference to DOM UI elements and make them visible
+    const levelIndicator = document.getElementById('level-indicator');
+    if (levelIndicator) {
+      levelIndicator.style.display = 'block';
+    } else {
+      console.error('[GameScene] Critical UI element missing: level-indicator');
+    }
+
     this.uiElement = document.getElementById('ui-container');
     if (this.uiElement) {
       this.uiElement.style.display = 'block';
+    } else {
+      console.error('[GameScene] Critical UI element missing: ui-container');
     }
+
     this.powerUpUIElement = document.getElementById('powerup-container');
+    if (!this.powerUpUIElement) {
+      console.error('[GameScene] Critical UI element missing: powerup-container');
+    }
 
     // Start power-up spawn timer
     this.powerUpSpawnTimer = GameConfig.powerUps.spawnInterval;
 
     // Render initial grid
     this.renderGrid();
+  }
+
+  private applyLevelConfig(): void {
+    if (!this.levelConfig) return;
+
+    // Apply level-specific difficulty settings
+    GameConfig.initialCats = this.levelConfig.catCount;
+    GameConfig.catSpeed = this.levelConfig.catSpeed;
+    GameConfig.winPercentage = this.levelConfig.winPercentage;
   }
 
   private handleLoopCompleted(trail: { x: number; y: number }[]): void {
@@ -129,44 +176,54 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showGameOver(): void {
-    const text = this.add.text(
-      GameConfig.width / 2,
-      GameConfig.height / 2,
-      '☠ WALK THE PLANK! ☠\n\nClick to Restart',
-      {
-        fontSize: '48px',
-        color: '#E74C3C',
-        align: 'center',
-        backgroundColor: '#1A1A1A',
-        padding: { x: 20, y: 20 },
-        fontStyle: 'bold'
-      }
-    );
-    text.setOrigin(0.5);
-    text.setDepth(200);
-    text.setInteractive({ useHandCursor: true });
-    text.on('pointerdown', () => this.scene.restart());
+    this.gameOver = true;
+
+    // Hide game UI elements before transition
+    this.hideGameUI();
+
+    // Return to menu with option to retry same level
+    try {
+      this.scene.start('MenuScene', {
+        lastLevel: this.currentLevel
+      });
+    } catch (error) {
+      console.error('[GameScene] Failed to start MenuScene:', error);
+    }
   }
 
   private showWin(): void {
+    this.gameOver = true;
     const percentage = this.gridManager.getPercentageCaptured();
-    const text = this.add.text(
-      GameConfig.width / 2,
-      GameConfig.height / 2,
-      `⚓ TREASURE SECURED! ⚓\n\nCaptured: ${percentage.toFixed(1)}%\n\nClick to Play Again`,
-      {
-        fontSize: '48px',
-        color: '#FFD700',
-        align: 'center',
-        backgroundColor: '#1A252F',
-        padding: { x: 20, y: 20 },
-        fontStyle: 'bold'
+
+    // Hide game UI elements before transition
+    this.hideGameUI();
+
+    // Check if there's a next level
+    if (this.currentLevel < LEVELS.length) {
+      // Transition to level complete screen
+      try {
+        this.scene.start('LevelCompleteScene', {
+          completedLevel: this.currentLevel,
+          nextLevel: this.currentLevel + 1,
+          percentage: percentage
+        });
+      } catch (error) {
+        console.error('[GameScene] Failed to start LevelCompleteScene:', error);
+        // Fallback to menu on error
+        this.scene.start('MenuScene');
       }
-    );
-    text.setOrigin(0.5);
-    text.setDepth(200);
-    text.setInteractive({ useHandCursor: true });
-    text.on('pointerdown', () => this.scene.restart());
+    } else {
+      // All levels complete! Show victory screen
+      try {
+        this.scene.start('VictoryScene', {
+          percentage: percentage
+        });
+      } catch (error) {
+        console.error('[GameScene] Failed to start VictoryScene:', error);
+        // Fallback to menu on error
+        this.scene.start('MenuScene');
+      }
+    }
   }
 
   update(time: number, delta: number) {
@@ -188,6 +245,18 @@ export class GameScene extends Phaser.Scene {
     const speedMultiplier = this.mouse.getSpeedMultiplier();
     const speedDisplay = speedMultiplier > 1.0 ? ` | Speed: ${speedMultiplier.toFixed(1)}×` : '';
 
+    // Update level indicator with null checks
+    const levelIndicator = document.getElementById('level-indicator');
+    if (levelIndicator) {
+      if (this.levelConfig) {
+        levelIndicator.textContent = `Level ${this.currentLevel}: ${this.levelConfig.name}`;
+      } else {
+        // Fallback display when config is null
+        levelIndicator.textContent = `Level ${this.currentLevel}`;
+        console.warn('[GameScene] Level config is null, showing fallback level indicator');
+      }
+    }
+
     if (this.uiElement) {
       this.uiElement.textContent = `Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives} | Pirates: ${this.cats.length}${speedDisplay}`;
     }
@@ -196,9 +265,8 @@ export class GameScene extends Phaser.Scene {
     if (this.powerUpUIElement) {
       if (this.activePowerUpEffect && this.powerUpEffectTimer > 0) {
         const secondsLeft = Math.ceil(this.powerUpEffectTimer / 1000);
-        const effectName = this.activePowerUpEffect === PowerUpType.FREEZE ? 'FROZEN' : 'SLOWED';
-        const icon = this.activePowerUpEffect === PowerUpType.FREEZE ? '❄' : '⚓';
-        this.powerUpUIElement.textContent = `${icon} ${effectName}: ${secondsLeft}s`;
+        const effectName = this.activePowerUpEffect === PowerUpType.FREEZE ? 'FREEZE' : 'SLOW';
+        this.powerUpUIElement.textContent = `${effectName}: ${secondsLeft}s`;
         this.powerUpUIElement.style.display = 'block';
       } else {
         this.powerUpUIElement.style.display = 'none';
@@ -1031,6 +1099,17 @@ export class GameScene extends Phaser.Scene {
     // Increase player speed by configured percentage (default 10%)
     const speedIncrease = 1 + GameConfig.speedIncreasePerCat; // 1.1 for 10% increase
     this.mouse.increaseSpeed(speedIncrease);
+  }
+
+  private hideGameUI(): void {
+    const levelIndicator = document.getElementById('level-indicator');
+    if (levelIndicator) levelIndicator.style.display = 'none';
+
+    const uiContainer = document.getElementById('ui-container');
+    if (uiContainer) uiContainer.style.display = 'none';
+
+    const powerupContainer = document.getElementById('powerup-container');
+    if (powerupContainer) powerupContainer.style.display = 'none';
   }
 
   // Cleanup method to prevent memory leaks

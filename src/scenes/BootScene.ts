@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 
 export class BootScene extends Phaser.Scene {
+  private loadingText!: Phaser.GameObjects.Text;
+  private progressBar!: Phaser.GameObjects.Graphics;
+  private progressBox!: Phaser.GameObjects.Graphics;
+
   constructor() {
     super({ key: 'BootScene' });
   }
@@ -8,13 +12,27 @@ export class BootScene extends Phaser.Scene {
   preload() {
     console.log('[BootScene] Starting asset preload...');
 
+    // Create loading UI
+    this.createLoadingScreen();
+
     // Add error handling for failed assets
     this.load.on('loaderror', (fileObj: any) => {
       console.error('[BootScene] Failed to load asset:', fileObj.key, fileObj.src);
     });
 
+    // Update progress bar as assets load
+    this.load.on('progress', (value: number) => {
+      this.progressBar.clear();
+      this.progressBar.fillStyle(0xFFD700, 1);
+      this.progressBar.fillRect(250, 290, 300 * value, 30);
+      this.loadingText.setText(`Loading: ${Math.floor(value * 100)}%`);
+    });
+
     this.load.on('complete', () => {
       console.log('[BootScene] All assets loaded successfully');
+      this.progressBar.destroy();
+      this.progressBox.destroy();
+      this.loadingText.destroy();
     });
 
     // Load cat animation frames
@@ -22,6 +40,29 @@ export class BootScene extends Phaser.Scene {
 
     // Create placeholder textures for other sprites
     this.createSpriteTextures();
+  }
+
+  private createLoadingScreen(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Loading text
+    this.loadingText = this.add.text(width / 2, height / 2 - 50, 'Loading: 0%', {
+      fontSize: '24px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+
+    // Progress bar background
+    this.progressBox = this.add.graphics();
+    this.progressBox.fillStyle(0x222222, 0.8);
+    this.progressBox.fillRect(240, 280, 320, 50);
+
+    // Progress bar border
+    this.progressBox.lineStyle(3, 0xFFD700, 1);
+    this.progressBox.strokeRect(240, 280, 320, 50);
+
+    // Progress bar fill
+    this.progressBar = this.add.graphics();
   }
 
   private loadCatAnimations(): void {
@@ -50,7 +91,11 @@ export class BootScene extends Phaser.Scene {
     console.log('[BootScene] Boot complete, transitioning to MenuScene');
 
     // Boot complete, go to menu
-    this.scene.start('MenuScene');
+    try {
+      this.scene.start('MenuScene');
+    } catch (error) {
+      console.error('[BootScene] Failed to start MenuScene:', error);
+    }
   }
 
   private createSpriteTextures(): void {

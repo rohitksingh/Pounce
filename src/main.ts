@@ -3,6 +3,8 @@ import { GameConfig } from './config/GameConfig';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
+import { LevelCompleteScene } from './scenes/LevelCompleteScene';
+import { VictoryScene } from './scenes/VictoryScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -17,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [BootScene, MenuScene, GameScene]
+  scene: [BootScene, MenuScene, GameScene, LevelCompleteScene, VictoryScene]
 };
 
 new Phaser.Game(config);

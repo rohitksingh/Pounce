@@ -4,96 +4,523 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pounce - Territory Capture Game</title>
+
+    <!-- Google Fonts: Pirata One (pirate theme) + Orbitron (modern UI) -->
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
         padding: 0;
-        background-color: #000;
+        background: linear-gradient(135deg, #0a2540 0%, #1a3a52 50%, #0a2540 100%);
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        font-family: Arial, sans-serif;
+        font-family: 'Orbitron', sans-serif;
+        overflow: hidden;
       }
+
+      /* Decorative tropical background pattern */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image:
+          radial-gradient(circle at 20% 80%, rgba(26, 188, 156, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(52, 152, 219, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
       #app-wrapper {
         position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 10px;
+        gap: 0;
+        z-index: 1;
       }
-      #level-indicator {
-        background-color: #2C3E50;
-        color: #ECF0F1;
-        padding: 8px 16px;
-        font-size: 18px;
-        font-weight: bold;
-        border-radius: 5px;
-        min-width: 300px;
-        text-align: center;
+
+      /* TOP BAR - Level title and stats */
+      #ui-top-bar {
+        width: 800px;
+        background: rgba(10, 37, 64, 0.85);
+        backdrop-filter: blur(15px);
+        border: 3px solid #1abc9c;
+        border-bottom: none;
+        border-radius: 15px 15px 0 0;
+        padding: 15px 20px;
+        box-shadow:
+          0 -4px 20px rgba(26, 188, 156, 0.3),
+          inset 0 2px 10px rgba(255, 255, 255, 0.1);
         display: none; /* Hidden by default, shown when GameScene starts */
+        position: relative;
+        overflow: hidden;
       }
-      #ui-container {
-        background-color: #1A252F;
-        color: #FFD700;
-        padding: 10px 20px;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 5px;
-        min-width: 300px;
-        text-align: center;
-        display: none; /* Hidden by default, shown when GameScene starts */
-      }
-      #powerup-container {
-        background: linear-gradient(135deg, #2C3E50, #34495E);
-        color: #ECF0F1;
-        padding: 8px 16px;
-        font-size: 18px;
-        font-weight: bold;
-        border-radius: 5px;
-        border: 2px solid #3498DB;
-        text-align: center;
-        display: none;
-        animation: pulse 0.5s ease-in-out infinite alternate;
-      }
-      @keyframes pulse {
-        from { transform: scale(1); }
-        to { transform: scale(1.05); }
-      }
-      #game-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      #version-display {
+
+      /* Bamboo corner decorations */
+      #ui-top-bar::before,
+      #ui-top-bar::after {
+        content: '🎋';
         position: absolute;
-        bottom: 10px;
+        font-size: 32px;
+        opacity: 0.4;
+        animation: sway 3s ease-in-out infinite;
+      }
+
+      #ui-top-bar::before {
+        top: 5px;
+        left: 10px;
+      }
+
+      #ui-top-bar::after {
+        top: 5px;
         right: 10px;
-        color: #FFD700;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes sway {
+        0%, 100% { transform: rotate(-2deg); }
+        50% { transform: rotate(2deg); }
+      }
+
+      #level-title {
+        font-family: 'Pirata One', cursive;
+        font-size: 28px;
+        color: #ffd700;
+        text-align: center;
+        text-shadow:
+          2px 2px 4px rgba(0, 0, 0, 0.8),
+          0 0 20px rgba(255, 215, 0, 0.5);
+        margin-bottom: 12px;
+        letter-spacing: 2px;
+        animation: titleGlow 2s ease-in-out infinite alternate;
+      }
+
+      @keyframes titleGlow {
+        from { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.5); }
+        to { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.8); }
+      }
+
+      #stats-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        position: relative;
+        z-index: 2;
+      }
+
+      /* TERRITORY DISPLAY with progress bar */
+      #territory-display {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(26, 188, 156, 0.15);
+        padding: 10px 15px;
+        border-radius: 10px;
+        border: 2px solid rgba(26, 188, 156, 0.4);
+      }
+
+      #territory-display .icon {
+        font-size: 24px;
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+        animation: float 2s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-4px); }
+      }
+
+      .progress-bar-container {
+        flex: 1;
+        height: 24px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #e74c3c 0%, #f39c12 30%, #f1c40f 70%, #2ecc71 85%, #ffd700 100%);
+        border-radius: 10px;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        box-shadow:
+          0 0 20px rgba(255, 215, 0, 0.6),
+          inset 0 2px 8px rgba(255, 255, 255, 0.3);
+      }
+
+      .progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.4) 0%,
+          rgba(255, 255, 255, 0.1) 50%,
+          rgba(0, 0, 0, 0.1) 51%,
+          rgba(0, 0, 0, 0.3) 100%
+        );
+        border-radius: 10px;
+      }
+
+      .progress-bar.near-target {
+        animation: pulseGlow 1s ease-in-out infinite;
+      }
+
+      @keyframes pulseGlow {
+        0%, 100% {
+          box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), inset 0 2px 8px rgba(255, 255, 255, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 40px rgba(255, 215, 0, 1), inset 0 2px 8px rgba(255, 255, 255, 0.5);
+        }
+      }
+
+      #territory-display .percentage {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: #ecf0f1;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        min-width: 100px;
+        text-align: right;
+      }
+
+      /* LIVES DISPLAY with hearts */
+      #lives-display {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        background: rgba(231, 76, 60, 0.15);
+        padding: 10px 15px;
+        border-radius: 10px;
+        border: 2px solid rgba(231, 76, 60, 0.4);
+      }
+
+      .heart {
+        font-size: 28px;
+        transition: all 0.3s ease;
+        filter: drop-shadow(0 0 8px rgba(231, 76, 60, 0.6));
+        animation: heartbeat 1.5s ease-in-out infinite;
+      }
+
+      @keyframes heartbeat {
+        0%, 100% { transform: scale(1); }
+        10% { transform: scale(1.1); }
+        20% { transform: scale(1); }
+      }
+
+      .heart.lost {
+        opacity: 0;
+        transform: scale(0) rotate(180deg);
+      }
+
+      .heart.danger {
+        color: #e74c3c;
+        animation: heartbeatDanger 0.8s ease-in-out infinite;
+      }
+
+      @keyframes heartbeatDanger {
+        0%, 100% { transform: scale(1); }
+        25% { transform: scale(1.2); }
+        50% { transform: scale(1); }
+        75% { transform: scale(1.2); }
+      }
+
+      /* POWERUP DISPLAY */
+      #powerup-display {
+        min-width: 150px;
+        background: rgba(52, 152, 219, 0.15);
+        padding: 10px 15px;
+        border-radius: 10px;
+        border: 2px solid rgba(52, 152, 219, 0.4);
+        text-align: center;
+        font-size: 14px;
+        color: #ecf0f1;
+        display: none;
+      }
+
+      #powerup-display.active {
+        display: block;
+        animation: powerupPulse 0.8s ease-in-out infinite alternate;
+      }
+
+      @keyframes powerupPulse {
+        from {
+          transform: scale(1);
+          box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
+        }
+        to {
+          transform: scale(1.05);
+          box-shadow: 0 0 40px rgba(52, 152, 219, 1);
+        }
+      }
+
+      /* GAME CONTAINER with decorative frame */
+      #game-container {
+        width: 800px;
+        height: 600px;
+        position: relative;
+        background: #000;
+        border-left: 3px solid #1abc9c;
+        border-right: 3px solid #1abc9c;
+        box-shadow:
+          0 0 30px rgba(26, 188, 156, 0.5),
+          inset 0 0 100px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Rope decoration on corners */
+      #game-container::before,
+      #game-container::after {
+        content: '⚓';
+        position: absolute;
+        font-size: 24px;
+        color: #f4a460;
+        opacity: 0.6;
+        z-index: 10;
+        animation: anchor 3s ease-in-out infinite;
+      }
+
+      #game-container::before {
+        top: 10px;
+        left: 10px;
+      }
+
+      #game-container::after {
+        top: 10px;
+        right: 10px;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes anchor {
+        0%, 100% { transform: rotate(-5deg); }
+        50% { transform: rotate(5deg); }
+      }
+
+      /* BOTTOM BAR - Minimap, score, version */
+      #ui-bottom-bar {
+        width: 800px;
+        background: rgba(10, 37, 64, 0.85);
+        backdrop-filter: blur(15px);
+        border: 3px solid #1abc9c;
+        border-top: none;
+        border-radius: 0 0 15px 15px;
+        padding: 12px 20px;
+        display: none; /* Hidden by default, shown when GameScene starts */
+        box-shadow:
+          0 4px 20px rgba(26, 188, 156, 0.3),
+          inset 0 -2px 10px rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Wave decoration */
+      #ui-bottom-bar::before {
+        content: '🌊';
+        position: absolute;
+        bottom: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        opacity: 0.3;
+      }
+
+      #ui-bottom-bar-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+      }
+
+      /* MINIMAP */
+      #minimap {
+        width: 120px;
+        height: 90px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 2px solid rgba(26, 188, 156, 0.6);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+      }
+
+      #minimap canvas {
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+      }
+
+      /* SCORE DISPLAY */
+      #score-display {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        color: #ffd700;
+        text-shadow:
+          0 0 10px rgba(255, 215, 0, 0.8),
+          2px 2px 4px rgba(0, 0, 0, 0.8);
+      }
+
+      #pirates-display {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 400;
+        font-size: 16px;
+        color: #ecf0f1;
+        text-shadow: 0 0 8px rgba(236, 240, 241, 0.6);
+      }
+
+      /* VERSION DISPLAY */
+      #version-display {
         font-family: 'Courier New', monospace;
         font-size: 12px;
+        color: #95a5a6;
         opacity: 0.7;
-        pointer-events: none;
-        z-index: 1000;
       }
-      /* Responsive positioning for mobile */
-      @media (max-width: 600px) {
-        #version-display {
-          bottom: 5px;
-          right: 5px;
-          font-size: 10px;
+
+      /* PARTICLE CANVAS - For UI effects */
+      #particle-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 800px;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      /* SCREEN SHAKE on life lost */
+      @keyframes screenShake {
+        0%, 100% { transform: translate(0, 0); }
+        10% { transform: translate(-5px, 2px); }
+        20% { transform: translate(5px, -2px); }
+        30% { transform: translate(-3px, 3px); }
+        40% { transform: translate(3px, -3px); }
+        50% { transform: translate(-2px, 2px); }
+        60% { transform: translate(2px, -2px); }
+        70% { transform: translate(-1px, 1px); }
+        80% { transform: translate(1px, -1px); }
+        90% { transform: translate(-1px, 0px); }
+      }
+
+      #app-wrapper.shake {
+        animation: screenShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+      }
+
+      /* RED FLASH on life lost */
+      @keyframes redFlash {
+        0%, 100% { background-color: transparent; }
+        50% { background-color: rgba(231, 76, 60, 0.3); }
+      }
+
+      #game-container.damage-flash {
+        animation: redFlash 0.3s ease-out;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 850px) {
+        #ui-top-bar,
+        #game-container,
+        #ui-bottom-bar {
+          width: 100vw;
+        }
+
+        #level-title {
+          font-size: 22px;
+        }
+
+        #territory-display .percentage {
+          font-size: 14px;
+          min-width: 80px;
+        }
+
+        .heart {
+          font-size: 24px;
+        }
+      }
+
+      /* FADE IN animation on scene start */
+      .fade-in {
+        animation: fadeIn 0.8s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
     </style>
   </head>
   <body>
     <div id="app-wrapper">
-      <div id="level-indicator"></div>
-      <div id="ui-container">Territory: 0.0% | Lives: 3</div>
-      <div id="powerup-container"></div>
+      <!-- TOP BAR: Level title and stats -->
+      <div id="ui-top-bar" class="fade-in">
+        <div id="level-title">🏝️ LEVEL 1: CARIBBEAN BEACH</div>
+        <div id="stats-container">
+          <!-- Territory progress bar -->
+          <div id="territory-display">
+            <span class="icon">🏝️</span>
+            <div class="progress-bar-container">
+              <div class="progress-bar"></div>
+            </div>
+            <span class="percentage">0% / 85%</span>
+          </div>
+
+          <!-- Lives with hearts -->
+          <div id="lives-display">
+            <span class="heart">❤️</span>
+            <span class="heart">❤️</span>
+            <span class="heart">❤️</span>
+          </div>
+
+          <!-- Powerup indicator -->
+          <div id="powerup-display"></div>
+        </div>
+      </div>
+
+      <!-- GAME CANVAS -->
       <div id="game-container"></div>
+
+      <!-- BOTTOM BAR: Minimap, score, version -->
+      <div id="ui-bottom-bar" class="fade-in">
+        <div id="ui-bottom-bar-content">
+          <div id="minimap">
+            <canvas id="minimap-canvas"></canvas>
+          </div>
+          <div id="pirates-display">☠️ Pirates: 5</div>
+          <div id="score-display">🏆 Territory: 0.0%</div>
+          <div id="version-display">v1.1.2</div>
+        </div>
+      </div>
+
+      <!-- Particle effects canvas -->
+      <canvas id="particle-canvas"></canvas>
     </div>
-    <div id="version-display">v1.1.2</div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

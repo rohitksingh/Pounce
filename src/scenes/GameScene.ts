@@ -17,7 +17,6 @@ export class GameScene extends Phaser.Scene {
   private powerUps: PowerUp[] = [];
   private lives: number = GameConfig.initialLives;
   private gameOver: boolean = false;
-  private uiElement: HTMLElement | null = null;
   private lastRenderedTrailLength: number = 0;
 
   // Level system
@@ -30,6 +29,15 @@ export class GameScene extends Phaser.Scene {
   private activePowerUpEffect: PowerUpType | null = null;
   private powerUpEffectTimer: number = 0;
   private powerUpUIElement: HTMLElement | null = null;
+
+  // New UI elements
+  private progressBar: HTMLElement | null = null;
+  private percentageText: HTMLElement | null = null;
+  private livesDisplay: HTMLElement | null = null;
+  private piratesDisplay: HTMLElement | null = null;
+  private scoreDisplay: HTMLElement | null = null;
+  private minimapCanvas: HTMLCanvasElement | null = null;
+  private minimapContext: CanvasRenderingContext2D | null = null;
 
   // Animated background elements
   private waveGraphics!: Phaser.GameObjects.Graphics;
@@ -106,25 +114,46 @@ export class GameScene extends Phaser.Scene {
     this.events.on('loop-completed', this.handleLoopCompleted, this);
     this.events.on('mouse-hit-trail', this.handleMouseHit, this);
 
-    // Get reference to DOM UI elements and make them visible
-    const levelIndicator = document.getElementById('level-indicator');
-    if (levelIndicator) {
-      levelIndicator.style.display = 'block';
+    // Get reference to new UI elements and make them visible
+    const uiTopBar = document.getElementById('ui-top-bar');
+    if (uiTopBar) {
+      uiTopBar.style.display = 'block';
     } else {
-      console.error('[GameScene] Critical UI element missing: level-indicator');
+      console.error('[GameScene] Critical UI element missing: ui-top-bar');
     }
 
-    this.uiElement = document.getElementById('ui-container');
-    if (this.uiElement) {
-      this.uiElement.style.display = 'block';
+    const uiBottomBar = document.getElementById('ui-bottom-bar');
+    if (uiBottomBar) {
+      uiBottomBar.style.display = 'block';
     } else {
-      console.error('[GameScene] Critical UI element missing: ui-container');
+      console.error('[GameScene] Critical UI element missing: ui-bottom-bar');
     }
 
-    this.powerUpUIElement = document.getElementById('powerup-container');
-    if (!this.powerUpUIElement) {
-      console.error('[GameScene] Critical UI element missing: powerup-container');
+    // Get references to individual UI elements
+    this.progressBar = document.querySelector('.progress-bar') as HTMLElement;
+    this.percentageText = document.querySelector('#territory-display .percentage') as HTMLElement;
+    this.livesDisplay = document.getElementById('lives-display');
+    this.piratesDisplay = document.getElementById('pirates-display');
+    this.scoreDisplay = document.getElementById('score-display');
+    this.powerUpUIElement = document.getElementById('powerup-display');
+
+    // Initialize minimap
+    this.minimapCanvas = document.getElementById('minimap-canvas') as HTMLCanvasElement;
+    if (this.minimapCanvas) {
+      this.minimapCanvas.width = 80; // Grid cols
+      this.minimapCanvas.height = 60; // Grid rows
+      this.minimapContext = this.minimapCanvas.getContext('2d');
     }
+
+    // Verify critical UI elements
+    if (!this.progressBar) console.error('[GameScene] Missing progress-bar');
+    if (!this.percentageText) console.error('[GameScene] Missing percentage text');
+    if (!this.livesDisplay) console.error('[GameScene] Missing lives-display');
+    if (!this.piratesDisplay) console.error('[GameScene] Missing pirates-display');
+    if (!this.scoreDisplay) console.error('[GameScene] Missing score-display');
+
+    // Initialize lives display
+    this.updateLivesDisplay();
 
     // Start power-up spawn timer
     this.powerUpSpawnTimer = GameConfig.powerUps.spawnInterval;
@@ -245,36 +274,90 @@ export class GameScene extends Phaser.Scene {
 
   private updateUI(): void {
     const percentage = this.gridManager.getPercentageCaptured();
-    const speedMultiplier = this.mouse.getSpeedMultiplier();
-    const speedDisplay = speedMultiplier > 1.0 ? ` | Speed: ${speedMultiplier.toFixed(1)}×` : '';
+    const winPercentage = this.levelConfig?.winPercentage || GameConfig.winPercentage;
 
-    // Update level indicator with null checks
-    const levelIndicator = document.getElementById('level-indicator');
-    if (levelIndicator) {
-      if (this.levelConfig) {
-        levelIndicator.textContent = `Level ${this.currentLevel}: ${this.levelConfig.name}`;
+    // Update progress bar
+    if (this.progressBar) {
+      const progressPercent = (percentage / winPercentage) * 100;
+      this.progressBar.style.width = `${Math.min(progressPercent, 100)}%`;
+
+      // Add near-target glow effect when close to winning
+      if (percentage >= winPercentage * 0.9) {
+        this.progressBar.classList.add('near-target');
       } else {
-        // Fallback display when config is null
-        levelIndicator.textContent = `Level ${this.currentLevel}`;
-        console.warn('[GameScene] Level config is null, showing fallback level indicator');
+        this.progressBar.classList.remove('near-target');
       }
     }
 
-    if (this.uiElement) {
-      this.uiElement.textContent = `Territory: ${percentage.toFixed(1)}% | Lives: ${this.lives} | Pirates: ${this.cats.length}${speedDisplay}`;
+    // Update percentage text
+    if (this.percentageText) {
+      this.percentageText.textContent = `${percentage.toFixed(1)}% / ${winPercentage}%`;
+    }
+
+    // Update pirates count
+    if (this.piratesDisplay) {
+      this.piratesDisplay.textContent = `☠️ Pirates: ${this.cats.length}`;
+    }
+
+    // Update score display
+    if (this.scoreDisplay) {
+      this.scoreDisplay.textContent = `🏆 Territory: ${percentage.toFixed(1)}%`;
     }
 
     // Update power-up UI
     if (this.powerUpUIElement) {
       if (this.activePowerUpEffect && this.powerUpEffectTimer > 0) {
         const secondsLeft = Math.ceil(this.powerUpEffectTimer / 1000);
-        const effectName = this.activePowerUpEffect === PowerUpType.FREEZE ? 'FREEZE' : 'SLOW';
+        const effectName = this.activePowerUpEffect === PowerUpType.FREEZE ? '❄️ FREEZE' : '🐌 SLOW';
         this.powerUpUIElement.textContent = `${effectName}: ${secondsLeft}s`;
-        this.powerUpUIElement.style.display = 'block';
+        this.powerUpUIElement.classList.add('active');
       } else {
-        this.powerUpUIElement.style.display = 'none';
+        this.powerUpUIElement.classList.remove('active');
       }
     }
+
+    // Update minimap
+    this.updateMinimap();
+  }
+
+  private updateMinimap(): void {
+    if (!this.minimapContext || !this.minimapCanvas) return;
+
+    const ctx = this.minimapContext;
+    const grid = this.gridManager.getGrid();
+    const cols = GameConfig.gridCols;
+    const rows = GameConfig.gridRows;
+
+    // Clear minimap
+    ctx.clearRect(0, 0, cols, rows);
+
+    // Draw grid (1 pixel per cell)
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const cell = grid[y][x];
+        if (cell === CellState.CAPTURED) {
+          ctx.fillStyle = '#ffd700'; // Gold for captured
+        } else if (cell === CellState.TRAIL) {
+          ctx.fillStyle = '#f1c40f'; // Yellow for trail
+        } else {
+          ctx.fillStyle = '#1E3A5F'; // Dark blue for void
+        }
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    // Draw cats as red pixels
+    for (const cat of this.cats) {
+      const catGridX = Math.floor(cat.x / GameConfig.cellSize);
+      const catGridY = Math.floor(cat.y / GameConfig.cellSize);
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(catGridX, catGridY, 1, 1);
+    }
+
+    // Draw mouse as orange pixel
+    const mousePos = this.mouse.getGridPosition();
+    ctx.fillStyle = '#FFA500';
+    ctx.fillRect(mousePos.x, mousePos.y, 1, 1);
   }
 
   private checkCollisions(): void {
@@ -368,6 +451,12 @@ export class GameScene extends Phaser.Scene {
     this.lives--;
     this.mouse.resetTrail();
 
+    // Visual feedback: screen shake and damage flash
+    this.triggerDamageEffects();
+
+    // Update hearts display
+    this.updateLivesDisplay();
+
     // Reset speed to base on death
     this.mouse.resetSpeed();
     console.log('[GameScene] Player hit! Speed reset to base.');
@@ -379,6 +468,40 @@ export class GameScene extends Phaser.Scene {
       // Respawn at random captured location
       this.mouse.respawn();
       console.log(`[GameScene] Player respawned. Lives remaining: ${this.lives}`);
+    }
+  }
+
+  private updateLivesDisplay(): void {
+    if (!this.livesDisplay) return;
+
+    const hearts = this.livesDisplay.querySelectorAll('.heart');
+    hearts.forEach((heart, index) => {
+      if (index >= this.lives) {
+        // Lost heart - fade out
+        heart.classList.add('lost');
+      } else if (this.lives === 1) {
+        // Last heart - danger animation
+        heart.classList.add('danger');
+      } else {
+        // Normal heart
+        heart.classList.remove('lost', 'danger');
+      }
+    });
+  }
+
+  private triggerDamageEffects(): void {
+    // Screen shake
+    const appWrapper = document.getElementById('app-wrapper');
+    if (appWrapper) {
+      appWrapper.classList.add('shake');
+      setTimeout(() => appWrapper.classList.remove('shake'), 500);
+    }
+
+    // Red flash on game container
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) {
+      gameContainer.classList.add('damage-flash');
+      setTimeout(() => gameContainer.classList.remove('damage-flash'), 300);
     }
   }
 
@@ -1264,11 +1387,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private hideGameUI(): void {
-    const levelIndicator = document.getElementById('level-indicator');
-    if (levelIndicator) levelIndicator.style.display = 'none';
+    const uiTopBar = document.getElementById('ui-top-bar');
+    if (uiTopBar) uiTopBar.style.display = 'none';
 
-    const uiContainer = document.getElementById('ui-container');
-    if (uiContainer) uiContainer.style.display = 'none';
+    const uiBottomBar = document.getElementById('ui-bottom-bar');
+    if (uiBottomBar) uiBottomBar.style.display = 'none';
 
     const powerupContainer = document.getElementById('powerup-container');
     if (powerupContainer) powerupContainer.style.display = 'none';

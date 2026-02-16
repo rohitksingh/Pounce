@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-02-16
+
+### Changed
+- Fixed development server to always use port 5173
+  - Added `strictPort: true` to Vite configuration
+  - Prevents automatic port increment (no more 5174, 5175, etc.)
+  - Provides consistent URL for review: http://localhost:5173/Pounce/
+  - Clear error message when port is already in use
+
+### Documentation
+- Updated DEVELOPMENT_WORKFLOW.md with fixed port information
+
 ## [1.1.1] - 2026-02-16
 
 ### Changed

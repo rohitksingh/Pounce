@@ -169,6 +169,23 @@ Always include in GitHub Pages release notes:
 - Visual changes (screenshots if UI changes)
 - Breaking changes (if any)
 
+## Using the /onboard Skill
+
+When the Project Owner runs `/onboard`, always provide a brief summary after displaying the content:
+
+**Summary Format:**
+```
+📚 Onboarding Summary
+
+I've refreshed my understanding of:
+1. [Key point 1]
+2. [Key point 2]
+3. [Key point 3]
+4. [Key point 4]
+
+Ready to follow the complete workflow!
+```
+
 ## Project Context
 
 This is Pounce - a territory capture game built with Phaser 3 and TypeScript. The game features:

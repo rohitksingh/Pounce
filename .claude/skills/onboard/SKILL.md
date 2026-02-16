@@ -448,3 +448,27 @@ You will:
 **Welcome to the Pounce development team!** 🎉
 
 This workflow ensures high-quality, well-tested code reaches your end users.
+
+---
+
+## 📝 After Displaying This Content
+
+Always provide a brief summary of what you learned:
+
+```
+📚 Onboarding Summary
+
+I've refreshed my understanding of:
+1. The 3 specialized agents (fullstack-developer, ui-bug-tester, tech-architect)
+2. Agent transparency requirement (always announce which agent is working)
+3. Task handover workflow (create tickets → assign agents → test → owner review)
+4. Git branch strategy (feature → release → main with owner approval)
+
+Key takeaways:
+- Never work directly - always use ticket workflow
+- Always announce which agent is working
+- Only ask for owner review when all bugs are fixed
+- Wait for "I like it" before merging to main
+
+Ready to follow the complete workflow!
+```

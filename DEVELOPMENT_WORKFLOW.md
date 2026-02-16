@@ -174,3 +174,15 @@ fullstack-developer → ui-bug-tester → (bugs?) → fullstack-developer
 - 📦 Update version
 - 📝 Add release notes
 - 🎉 Announce release
+
+---
+
+## Development Server
+
+### Fixed Port Configuration
+The development server is configured to always use port 5173:
+- **URL**: http://localhost:5173/Pounce/
+- **Configuration**: `strictPort: true` in vite.config.ts
+- **Behavior**: Server will fail with clear error if port 5173 is already in use
+
+This ensures a consistent URL for all reviews and testing.

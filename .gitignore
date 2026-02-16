@@ -83,3 +83,17 @@ coverage.xml
 
 # Test cache
 .vitest-cache
+
+# Test artifacts and reports
+*TEST*.md
+*_TEST_*.md
+TEST_*.md
+*_SUMMARY.md
+*_REPORT.md
+*_GUIDE.md
+*_CHECKLIST.md
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride

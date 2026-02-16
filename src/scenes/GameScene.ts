@@ -765,6 +765,35 @@ export class GameScene extends Phaser.Scene {
     // Random power-up type
     const type = Phaser.Math.Between(0, 1) === 0 ? PowerUpType.FREEZE : PowerUpType.SLOW;
     const powerUp = new PowerUp(this, x, y, type);
+
+    // Add spawn animation (scale from 0 to 1)
+    powerUp.setScale(0);
+    this.tweens.add({
+      targets: powerUp,
+      scale: 1,
+      duration: 500,
+      ease: 'Back.easeOut'
+    });
+
+    // Add spawn particle burst
+    if (this.textures.exists('trail-particle')) {
+      const spawnColor = type === PowerUpType.FREEZE ? 0x3498DB : 0x95A5A6;
+      const spawnParticles = this.add.particles(x, y, 'trail-particle', {
+        speed: { min: 50, max: 100 },
+        scale: { start: 0.6, end: 0 },
+        alpha: { start: 0.8, end: 0 },
+        lifespan: 600,
+        quantity: 20,
+        tint: spawnColor,
+        blendMode: Phaser.BlendModes.ADD
+      });
+
+      // Auto-destroy after 1 second
+      this.time.delayedCall(1000, () => {
+        spawnParticles.destroy();
+      });
+    }
+
     this.powerUps.push(powerUp);
   }
 
@@ -814,8 +843,61 @@ export class GameScene extends Phaser.Scene {
       this.cats.forEach(cat => cat.setCatState(CatState.SLOWED));
     }
 
+    // Collection visual effects
+    this.playPowerUpCollectionEffects(powerUp);
+
     // Destroy power-up with animation
-    powerUp.destroy();
+    this.tweens.add({
+      targets: powerUp,
+      scale: 0,
+      alpha: 0,
+      duration: 300,
+      ease: 'Back.easeIn',
+      onComplete: () => {
+        powerUp.destroy();
+      }
+    });
+  }
+
+  private playPowerUpCollectionEffects(powerUp: PowerUp): void {
+    const x = powerUp.x;
+    const y = powerUp.y;
+    const collectionColor = powerUp.type === PowerUpType.FREEZE ? 0x3498DB : 0x95A5A6;
+
+    // Burst particle effect
+    if (this.textures.exists('trail-particle')) {
+      const burstParticles = this.add.particles(x, y, 'trail-particle', {
+        speed: { min: 100, max: 200 },
+        scale: { start: 0.8, end: 0 },
+        alpha: { start: 1.0, end: 0 },
+        lifespan: 800,
+        quantity: 30,
+        tint: collectionColor,
+        blendMode: Phaser.BlendModes.ADD
+      });
+
+      // Auto-destroy after 1 second
+      this.time.delayedCall(1000, () => {
+        burstParticles.destroy();
+      });
+    }
+
+    // Screen flash effect
+    const flashGraphics = this.add.graphics();
+    flashGraphics.fillStyle(collectionColor, 0.3);
+    flashGraphics.fillRect(0, 0, GameConfig.width, GameConfig.height);
+    flashGraphics.setDepth(100); // Above everything
+
+    // Fade out flash
+    this.tweens.add({
+      targets: flashGraphics,
+      alpha: 0,
+      duration: 300,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        flashGraphics.destroy();
+      }
+    });
   }
 
   private endPowerUpEffect(): void {

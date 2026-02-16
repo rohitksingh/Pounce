@@ -12,6 +12,9 @@ export class PowerUp extends Phaser.GameObjects.Container {
   private glow: Phaser.GameObjects.Graphics;
   private glowTween?: Phaser.Tweens.Tween;
   private particles?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private rotationTween?: Phaser.Tweens.Tween;
+  private floatTween?: Phaser.Tweens.Tween;
+  private spiralParticles?: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: PowerUpType) {
     super(scene, x, y);
@@ -32,26 +35,58 @@ export class PowerUp extends Phaser.GameObjects.Container {
     // Draw the power-up based on type
     this.drawPowerUp();
 
-    // Create particle effect (only if texture exists)
+    // Create particle effect (only if texture exists) - ENHANCED
     const particleColor = this.type === PowerUpType.FREEZE ? 0x3498DB : 0x95A5A6;
     if (scene.textures.exists('trail-particle')) {
       this.particles = scene.add.particles(0, 0, 'trail-particle', {
-        speed: { min: 10, max: 30 },
-        scale: { start: 0.3, end: 0 },
-        alpha: { start: 0.6, end: 0 },
-        lifespan: 800,
-        frequency: 100,
+        speed: { min: 15, max: 40 }, // Increased from 10-30
+        scale: { start: 0.5, end: 0 }, // Increased from 0.3
+        alpha: { start: 0.8, end: 0 }, // Increased from 0.6
+        lifespan: 1000, // Increased from 800
+        frequency: 60, // Decreased from 100 (more particles)
         tint: particleColor,
         blendMode: Phaser.BlendModes.ADD
       });
       this.add(this.particles);
+
+      // Add spiral particle emitter for more visual appeal
+      this.spiralParticles = scene.add.particles(0, 0, 'trail-particle', {
+        speed: { min: 20, max: 50 },
+        scale: { start: 0.4, end: 0 },
+        alpha: { start: 0.7, end: 0 },
+        lifespan: 800,
+        frequency: 80,
+        tint: particleColor,
+        blendMode: Phaser.BlendModes.ADD,
+        radial: true
+      });
+      this.add(this.spiralParticles);
     }
 
-    // Add pulsing glow animation
+    // Add pulsing glow animation - ENHANCED (more intense)
     this.glowTween = scene.tweens.add({
       targets: this.glow,
-      alpha: { from: 0.3, to: 0.7 },
-      duration: 800,
+      alpha: { from: 0.5, to: 0.9 }, // Increased from 0.3-0.7
+      duration: 600, // Faster from 800
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Add continuous rotation animation
+    this.rotationTween = scene.tweens.add({
+      targets: this,
+      angle: 360,
+      duration: 3000,
+      repeat: -1,
+      ease: 'Linear'
+    });
+
+    // Add floating/bobbing animation
+    this.floatTween = scene.tweens.add({
+      targets: this,
+      y: this.y + 10, // Float up/down 10 pixels
+      duration: 1500,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
@@ -71,10 +106,14 @@ export class PowerUp extends Phaser.GameObjects.Container {
       const color = 0x3498DB;
       const glowColor = 0x5DADE2;
 
-      // Draw glow
+      // Draw glow - ENHANCED (larger and more intense)
       this.glow.clear();
-      this.glow.fillStyle(glowColor, 0.5);
-      this.glow.fillCircle(centerX, centerY, size * 0.6);
+      this.glow.fillStyle(glowColor, 0.6); // Increased from 0.5
+      this.glow.fillCircle(centerX, centerY, size * 0.8); // Increased from 0.6
+
+      // Add outer glow ring
+      this.glow.fillStyle(glowColor, 0.3);
+      this.glow.fillCircle(centerX, centerY, size * 1.0);
 
       // Draw main shape - snowflake
       this.sprite.clear();
@@ -125,10 +164,14 @@ export class PowerUp extends Phaser.GameObjects.Container {
       const color = 0x7F8C8D;
       const glowColor = 0x95A5A6;
 
-      // Draw glow
+      // Draw glow - ENHANCED (larger and more intense)
       this.glow.clear();
-      this.glow.fillStyle(glowColor, 0.5);
-      this.glow.fillCircle(centerX, centerY, size * 0.6);
+      this.glow.fillStyle(glowColor, 0.6); // Increased from 0.5
+      this.glow.fillCircle(centerX, centerY, size * 0.8); // Increased from 0.6
+
+      // Add outer glow ring
+      this.glow.fillStyle(glowColor, 0.3);
+      this.glow.fillCircle(centerX, centerY, size * 1.0);
 
       // Draw main shape - anchor
       this.sprite.clear();
@@ -175,6 +218,18 @@ export class PowerUp extends Phaser.GameObjects.Container {
     if (this.glowTween) {
       this.glowTween.stop();
       this.glowTween = undefined;
+    }
+    if (this.rotationTween) {
+      this.rotationTween.stop();
+      this.rotationTween = undefined;
+    }
+    if (this.floatTween) {
+      this.floatTween.stop();
+      this.floatTween = undefined;
+    }
+    if (this.spiralParticles) {
+      this.spiralParticles.destroy();
+      this.spiralParticles = undefined;
     }
     super.destroy(fromScene);
   }

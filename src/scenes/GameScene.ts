@@ -6,6 +6,7 @@ import { Cat, CatState } from '../entities/Cat';
 import { PowerUp, PowerUpType } from '../entities/PowerUp';
 import { FloodFill } from '../utils/FloodFill';
 import { getLevelConfig, LEVELS, LevelDefinition } from '../config/LevelConfig';
+import { getThemeConfig, ThemeVisuals } from '../config/ThemeConfig';
 
 export class GameScene extends Phaser.Scene {
   private gridManager!: GridManager;
@@ -22,6 +23,7 @@ export class GameScene extends Phaser.Scene {
   // Level system
   private currentLevel: number = 1;
   private levelConfig: LevelDefinition | null = null;
+  private currentTheme!: ThemeVisuals;
 
   // Power-up system state
   private powerUpSpawnTimer: number = 0;
@@ -49,6 +51,7 @@ export class GameScene extends Phaser.Scene {
     // Initialize level system
     this.currentLevel = data?.level || 1;
     this.levelConfig = getLevelConfig(this.currentLevel);
+    this.currentTheme = getThemeConfig(this.levelConfig.theme);
     this.applyLevelConfig();
 
     // Reset game state for new level
@@ -470,16 +473,16 @@ export class GameScene extends Phaser.Scene {
 
         switch (state) {
           case CellState.CAPTURED:
-            // Draw island overlay with wooden deck color
-            this.gridGraphics.fillStyle(0xD4A574, 0.9);
+            // Draw island overlay with theme-specific color
+            this.gridGraphics.fillStyle(this.currentTheme.territory.baseColor, 0.9);
             this.gridGraphics.fillRect(
               x * cellSize,
               y * cellSize,
               cellSize,
               cellSize
             );
-            // Add subtle grid lines for deck planks
-            this.gridGraphics.lineStyle(1, 0xB8935C, 0.3);
+            // Add subtle grid lines
+            this.gridGraphics.lineStyle(1, this.currentTheme.territory.lineColor, 0.3);
             this.gridGraphics.strokeRect(
               x * cellSize,
               y * cellSize,
@@ -721,25 +724,31 @@ export class GameScene extends Phaser.Scene {
     // Create procedural particle textures
     this.createParticleTextures();
 
-    // Create bubble particle emitter (only if texture exists)
+    // Create primary particle emitter (bubble/snowflake/sand - only if texture exists)
     if (this.textures.exists('bubble')) {
+      const primaryParticle = this.currentTheme.particles.primary;
+      const spawnFromBottom = primaryParticle.direction === 'up';
+
       this.bubbleParticleManager = this.add.particles(0, 0, 'bubble', {
         x: { min: 0, max: GameConfig.width },
-        y: GameConfig.height + 10,
+        y: spawnFromBottom ? GameConfig.height + 10 : -10,
         lifespan: { min: 3000, max: 6000 },
-        speedY: { min: -30, max: -60 },
+        speedY: spawnFromBottom ? { min: -30, max: -60 } : { min: 30, max: 60 },
         speedX: { min: -10, max: 10 },
         scale: { start: 0.3, end: 0 },
         alpha: { start: 0.4, end: 0 },
         frequency: 100,
         quantity: 1,
-        blendMode: Phaser.BlendModes.ADD
+        blendMode: Phaser.BlendModes.ADD,
+        tint: primaryParticle.tint
       });
       this.bubbleParticleManager.setDepth(0.7);
     }
 
-    // Create sparkle particle emitter (treasure glints) - only if texture exists
+    // Create secondary particle emitter (sparkle/ice-crystal/dust - only if texture exists)
     if (this.textures.exists('sparkle')) {
+      const secondaryParticle = this.currentTheme.particles.secondary;
+
       this.sparkleParticleManager = this.add.particles(0, 0, 'sparkle', {
         x: { min: 0, max: GameConfig.width },
         y: { min: 0, max: GameConfig.height },
@@ -751,7 +760,7 @@ export class GameScene extends Phaser.Scene {
         frequency: 300,
         quantity: 1,
         blendMode: Phaser.BlendModes.ADD,
-        tint: 0xFFD700 // Golden treasure color
+        tint: secondaryParticle.tint
       });
       this.sparkleParticleManager.setDepth(0.8);
     }
@@ -760,22 +769,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createParticleTextures(): void {
-    // Create bubble texture
+    // Create primary particle texture (bubble, snowflake, or sand)
+    const primaryColor = this.currentTheme.particles.primary.color;
     const bubbleGraphics = this.add.graphics();
-    bubbleGraphics.fillStyle(0x87CEEB, 1);
+    bubbleGraphics.fillStyle(primaryColor, 1);
     bubbleGraphics.fillCircle(8, 8, 8);
     bubbleGraphics.lineStyle(2, 0xFFFFFF, 0.5);
     bubbleGraphics.strokeCircle(8, 8, 8);
     bubbleGraphics.generateTexture('bubble', 16, 16);
     bubbleGraphics.destroy();
 
-    // Create sparkle texture (4-pointed star)
+    // Create secondary particle texture (sparkle, ice-crystal, or dust)
+    const secondaryColor = this.currentTheme.particles.secondary.color;
     const sparkleGraphics = this.add.graphics();
-    sparkleGraphics.fillStyle(0xFFFFFF, 1);
+    sparkleGraphics.fillStyle(secondaryColor, 1);
     sparkleGraphics.fillCircle(8, 8, 6);
 
     // Add star points
-    sparkleGraphics.fillStyle(0xFFFFFF, 0.8);
+    sparkleGraphics.fillStyle(secondaryColor, 0.8);
     const points = [
       { x: 8, y: 2 },   // Top
       { x: 8, y: 14 },  // Bottom
@@ -796,8 +807,8 @@ export class GameScene extends Phaser.Scene {
     // Render animated waves
     this.renderAnimatedWaves();
 
-    // Render light caustics
-    this.renderLightCaustics();
+    // Render ambient effect (caustics, aurora, or heatwave)
+    this.renderAmbientEffect();
 
     // Update palm trees if captured territory changed
     this.updatePalmTrees();
@@ -810,20 +821,20 @@ export class GameScene extends Phaser.Scene {
     const height = GameConfig.height;
     const waveCount = 3; // Number of wave layers
 
+    // Get theme-specific colors and parameters
+    const colors = this.currentTheme.backgroundLayers.colors;
+    const alphas = this.currentTheme.backgroundLayers.alpha;
+    const speedMult = this.currentTheme.backgroundLayers.speedMultiplier;
+    const ampMult = this.currentTheme.backgroundLayers.amplitudeMultiplier;
+
     // Draw multiple wave layers at different depths
     for (let layer = 0; layer < waveCount; layer++) {
       const layerDepth = layer / waveCount;
-      const waveHeight = 20 + layer * 10;
+      const waveHeight = (20 + layer * 10) * ampMult;
       const waveFrequency = 0.01 + layer * 0.005;
-      const waveSpeed = 1 + layer * 0.5;
-      const alpha = 0.15 - layer * 0.03;
+      const waveSpeed = (1 + layer * 0.5) * speedMult;
+      const alpha = alphas[layer];
 
-      // Color gradient from deep blue to lighter blue-green
-      const colors = [
-        0x0A2540, // Deepest ocean
-        0x1E3A5F, // Medium depth
-        0x2E5A7F  // Lighter depth
-      ];
       const color = colors[layer];
 
       this.waveGraphics.fillStyle(color, alpha);
@@ -854,21 +865,24 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private renderLightCaustics(): void {
+  private renderAmbientEffect(): void {
     this.causticsGraphics.clear();
 
     const width = GameConfig.width;
     const height = GameConfig.height;
     const gridSize = 80; // Increased from 40 to reduce performance cost (4x fewer cells)
-    const intensity = 0.3;
+    const intensity = this.currentTheme.ambientEffect.intensity;
+    const color = this.currentTheme.ambientEffect.color;
+    const secondaryColor = this.currentTheme.ambientEffect.secondaryColor;
 
-    // Draw animated light caustics using overlapping circles
+    // Draw animated ambient effect using overlapping circles
+    // Works for caustics, aurora, and heatwave effects
     for (let x = 0; x < width; x += gridSize) {
       for (let y = 0; y < height; y += gridSize) {
         // Add per-cell phase offset for smoother, more organic movement
         const phaseOffset = (x * 0.1 + y * 0.1);
 
-        // Use multiple sine waves to create organic caustic pattern
+        // Use multiple sine waves to create organic pattern
         const offset1 = Math.sin((x * 0.02 + this.waveTime * 0.5 + phaseOffset)) * 20;
         const offset2 = Math.cos((y * 0.02 + this.waveTime * 0.3 + phaseOffset * 0.7)) * 20;
         const offset3 = Math.sin((x * 0.01 + y * 0.01 + this.waveTime * 0.4 + phaseOffset * 0.5)) * 15;
@@ -880,12 +894,12 @@ export class GameScene extends Phaser.Scene {
         const alphaVariation = Math.sin(x * 0.1 + y * 0.1 + this.waveTime + phaseOffset) * 0.3 + 0.7;
         const alpha = intensity * alphaVariation;
 
-        // Draw caustic light spot
-        this.causticsGraphics.fillStyle(0x87CEEB, alpha); // Light blue
+        // Draw ambient light spot
+        this.causticsGraphics.fillStyle(color, alpha);
         this.causticsGraphics.fillCircle(finalX, finalY, gridSize * 0.6);
 
-        // Add highlight
-        this.causticsGraphics.fillStyle(0xFFFFFF, alpha * 0.5);
+        // Add highlight/secondary color
+        this.causticsGraphics.fillStyle(secondaryColor, alpha * 0.5);
         this.causticsGraphics.fillCircle(finalX, finalY, gridSize * 0.3);
       }
     }
@@ -992,10 +1006,25 @@ export class GameScene extends Phaser.Scene {
   private renderPalmTrees(): void {
     this.palmTreeGraphics.clear();
 
-    // Draw each palm tree with swaying animation
-    // Trees are already filtered in updatePalmTreePositions() to only include captured territory
+    // Draw each decoration with animation (palms, cacti, or icebergs)
+    // Decorations are already filtered in updatePalmTreePositions() to only include captured territory
     for (const tree of this.palmTreePositions) {
-      this.drawPalmTree(tree.x, tree.y, tree.size, tree.phaseOffset);
+      this.drawDecoration(tree.x, tree.y, tree.size, tree.phaseOffset);
+    }
+  }
+
+  private drawDecoration(x: number, y: number, size: number, phaseOffset: number): void {
+    // Dispatch to appropriate decoration type based on theme
+    switch (this.currentTheme.decoration.type) {
+      case 'palm':
+        this.drawPalmTree(x, y, size, phaseOffset);
+        break;
+      case 'cactus':
+        this.drawCactus(x, y, size, phaseOffset);
+        break;
+      case 'iceberg':
+        this.drawIceberg(x, y, size, phaseOffset);
+        break;
     }
   }
 
@@ -1014,7 +1043,7 @@ export class GameScene extends Phaser.Scene {
     const swayAngle = Math.sin(this.waveTime * swaySpeed + phaseOffset) * swayAmount;
 
     // Draw trunk (brown, slightly tapered)
-    const trunkColor = 0x8B4513; // Saddle brown
+    const trunkColor = this.currentTheme.decoration.trunkColor;
     this.palmTreeGraphics.fillStyle(trunkColor, 1);
 
     // Draw trunk as a series of rectangles for slight curve effect
@@ -1036,7 +1065,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Draw palm fronds at top (green, radiating outward)
-    const frondColors = [0x228B22, 0x32CD32, 0x006400]; // Forest green, lime green, dark green
+    const frondColors = this.currentTheme.decoration.foliageColors;
     const topX = x + swayAngle * config.height * 0.5;
     const topY = y - config.height;
 
@@ -1092,6 +1121,139 @@ export class GameScene extends Phaser.Scene {
         this.palmTreeGraphics.fillStyle(0x654321, 1); // Dark brown
         this.palmTreeGraphics.fillCircle(coconutX, coconutY, coconutRadius);
       }
+    }
+  }
+
+  private drawCactus(x: number, y: number, size: number, phaseOffset: number): void {
+    // Size variations for cacti
+    const sizes = [
+      { height: 25, width: 8, armCount: 2 },   // Small
+      { height: 35, width: 10, armCount: 3 },  // Medium
+      { height: 45, width: 12, armCount: 4 }   // Large
+    ];
+    const config = sizes[size];
+
+    const cactusColor = this.currentTheme.decoration.trunkColor;
+    const detailColors = this.currentTheme.decoration.foliageColors;
+
+    // Draw main cactus body (vertical rectangle with rounded top)
+    this.palmTreeGraphics.fillStyle(cactusColor, 1);
+    this.palmTreeGraphics.fillRoundedRect(
+      x - config.width / 2,
+      y - config.height,
+      config.width,
+      config.height,
+      config.width / 3
+    );
+
+    // Draw cactus arms (horizontal branches)
+    for (let i = 0; i < config.armCount; i++) {
+      const armHeight = config.height * (0.3 + i * 0.2);
+      const armLength = config.width * (1.5 + Math.sin(phaseOffset + i) * 0.3);
+      const armWidth = config.width * 0.6;
+      const armY = y - armHeight;
+
+      // Alternate left and right arms
+      const direction = i % 2 === 0 ? 1 : -1;
+      const armX = x + direction * (config.width / 2);
+
+      // Draw arm (L-shaped)
+      const armColor = detailColors[i % detailColors.length];
+      this.palmTreeGraphics.fillStyle(armColor, 0.9);
+
+      // Horizontal part
+      this.palmTreeGraphics.fillRoundedRect(
+        direction > 0 ? armX : armX - armLength,
+        armY - armWidth / 2,
+        armLength,
+        armWidth,
+        armWidth / 3
+      );
+
+      // Vertical part going up
+      this.palmTreeGraphics.fillRoundedRect(
+        direction > 0 ? armX + armLength - armWidth : armX,
+        armY - armLength * 0.6,
+        armWidth,
+        armLength * 0.6,
+        armWidth / 3
+      );
+    }
+
+    // Add cactus spines (small lines)
+    this.palmTreeGraphics.lineStyle(1, 0xFFFFFF, 0.4);
+    const spineCount = 8 + size * 4;
+    for (let i = 0; i < spineCount; i++) {
+      const spineY = y - (i / spineCount) * config.height;
+      const spineX = x + (Math.sin(i * 1.5 + phaseOffset) > 0 ? 1 : -1) * config.width / 2;
+      const spineLength = 3 + Math.random() * 2;
+
+      this.palmTreeGraphics.lineTo(spineX, spineY);
+      this.palmTreeGraphics.lineTo(spineX + spineLength, spineY);
+    }
+    this.palmTreeGraphics.strokePath();
+  }
+
+  private drawIceberg(x: number, y: number, size: number, phaseOffset: number): void {
+    // Size variations for icebergs
+    const sizes = [
+      { width: 40, height: 25, peakCount: 2 },   // Small
+      { width: 55, height: 35, peakCount: 3 },   // Medium
+      { width: 70, height: 45, peakCount: 4 }    // Large
+    ];
+    const config = sizes[size];
+
+    // Calculate bob animation (icebergs float gently)
+    const bobSpeed = 0.5 + size * 0.1;
+    const bobAmount = 2 + size * 0.5;
+    const bobOffset = Math.sin(this.waveTime * bobSpeed + phaseOffset) * bobAmount;
+
+    const icebergColor = this.currentTheme.decoration.trunkColor;
+    const shadeColors = this.currentTheme.decoration.foliageColors;
+
+    const finalY = y + bobOffset;
+
+    // Draw main iceberg body (irregular polygon with peaks)
+    this.palmTreeGraphics.fillStyle(icebergColor, 0.9);
+    this.palmTreeGraphics.beginPath();
+
+    // Start at bottom left
+    this.palmTreeGraphics.moveTo(x - config.width / 2, finalY);
+
+    // Create jagged peaks at top
+    for (let i = 0; i <= config.peakCount; i++) {
+      const peakX = x - config.width / 2 + (i / config.peakCount) * config.width;
+      const peakY = finalY - config.height - (i % 2 === 0 ? 5 : 0);
+      this.palmTreeGraphics.lineTo(peakX, peakY);
+    }
+
+    // Complete the shape
+    this.palmTreeGraphics.lineTo(x + config.width / 2, finalY);
+    this.palmTreeGraphics.closePath();
+    this.palmTreeGraphics.fillPath();
+
+    // Add shading layers for depth
+    for (let layer = 0; layer < shadeColors.length; layer++) {
+      const layerHeight = config.height * (0.3 + layer * 0.2);
+      const layerWidth = config.width * (0.8 - layer * 0.2);
+
+      this.palmTreeGraphics.fillStyle(shadeColors[layer], 0.4 - layer * 0.1);
+      this.palmTreeGraphics.fillRect(
+        x - layerWidth / 2,
+        finalY - layerHeight,
+        layerWidth,
+        layerHeight * 0.3
+      );
+    }
+
+    // Add ice crystals/highlights (small white dots)
+    this.palmTreeGraphics.fillStyle(0xFFFFFF, 0.7);
+    const crystalCount = 4 + size * 2;
+    for (let i = 0; i < crystalCount; i++) {
+      const crystalX = x + (Math.random() - 0.5) * config.width * 0.6;
+      const crystalY = finalY - Math.random() * config.height * 0.8;
+      const crystalSize = 1 + Math.random() * 1.5;
+      this.palmTreeGraphics.fillCircle(crystalX, crystalY, crystalSize);
     }
   }
 

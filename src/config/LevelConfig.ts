@@ -22,19 +22,19 @@ export const LEVELS: LevelDefinition[] = [
   },
   {
     level: 2,
-    name: "Deeper Waters",
+    name: "Arctic Ice",
     catCount: 7,
     catSpeed: 85,
     winPercentage: 90,
-    theme: "tropical"
+    theme: "arctic"
   },
   {
     level: 3,
-    name: "Pirate's Lair",
+    name: "Desert Oasis",
     catCount: 10,
     catSpeed: 100,
     winPercentage: 95,
-    theme: "tropical"
+    theme: "desert"
   }
 ];
 

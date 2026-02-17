@@ -93,6 +93,18 @@ TEST_*.md
 *_GUIDE.md
 *_CHECKLIST.md
 
+# Agent task documentation artifacts
+TASK_*.md
+*_REDESIGN.md
+*_COMPLETE.md
+*_VERIFICATION*.md
+VISUAL_*.md
+CAT_*.md
+MANUAL_*.md
+QUICK_*.md
+UI_*.md
+V[0-9]_*.md
+
 # macOS system files
 .DS_Store
 .AppleDouble

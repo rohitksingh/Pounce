@@ -3,6 +3,7 @@ import { GameConfig, CellState } from '../config/GameConfig';
 import { GridManager } from '../utils/GridManager';
 import { Mouse } from '../entities/Mouse';
 import { Cat, CatState } from '../entities/Cat';
+import { Robot, RobotState } from '../entities/Robot';
 import { PowerUp, PowerUpType } from '../entities/PowerUp';
 import { FloodFill } from '../utils/FloodFill';
 import { getLevelConfig, LEVELS, LevelDefinition } from '../config/LevelConfig';
@@ -13,7 +14,7 @@ export class GameScene extends Phaser.Scene {
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private islandOverlay!: Phaser.GameObjects.TileSprite;
   private mouse!: Mouse;
-  private cats: Cat[] = [];
+  private cats: (Cat | Robot)[] = [];
   private powerUps: PowerUp[] = [];
   private lives: number = GameConfig.initialLives;
   private gameOver: boolean = false;
@@ -42,6 +43,7 @@ export class GameScene extends Phaser.Scene {
   // Animated background elements
   private waveGraphics!: Phaser.GameObjects.Graphics;
   private causticsGraphics!: Phaser.GameObjects.Graphics;
+  private wastelandGraphics!: Phaser.GameObjects.Graphics;
   private bubbleParticleManager?: Phaser.GameObjects.Particles.ParticleEmitter;
   private sparkleParticleManager?: Phaser.GameObjects.Particles.ParticleEmitter;
   private waveTime: number = 0;
@@ -95,7 +97,7 @@ export class GameScene extends Phaser.Scene {
     console.log('[GameScene] Game scene started');
     console.log(`[GameScene] Level ${this.currentLevel}: ${this.levelConfig.name}`);
     console.log(`[GameScene] Win condition: ${GameConfig.winPercentage}% territory`);
-    console.log(`[GameScene] Pirates: ${GameConfig.initialCats} | Speed: ${GameConfig.catSpeed}`);
+    console.log(`[GameScene] Robots: ${GameConfig.initialCats} | Speed: ${GameConfig.catSpeed}`);
     console.log(`[GameScene] Grid size: ${GameConfig.gridCols}x${GameConfig.gridRows} = ${GameConfig.gridCols * GameConfig.gridRows} cells`);
 
     // Create animated background layers
@@ -192,9 +194,18 @@ export class GameScene extends Phaser.Scene {
     const catsToDestroy = FloodFill.fillTerritory(this.gridManager, trail, this.cats);
     this.mouse.resetTrail();
 
+    // Collect newly captured cells for transformation effect
+    const newlyCapturedCells: { x: number; y: number }[] = [];
+    trail.forEach(point => {
+      newlyCapturedCells.push({ x: point.x, y: point.y });
+    });
+
+    // Play transformation effect (wasteland → nature)
+    this.playTransformationEffect(newlyCapturedCells);
+
     // Destroy trapped cats and increase player speed
     if (catsToDestroy.length > 0) {
-      console.log(`[GameScene] Captured ${catsToDestroy.length} pirate(s)!`);
+      console.log(`[GameScene] Captured ${catsToDestroy.length} robot(s)!`);
 
       catsToDestroy.forEach(cat => {
         cat.destroy();
@@ -205,11 +216,11 @@ export class GameScene extends Phaser.Scene {
       // Remove from cats array
       this.cats = this.cats.filter(cat => !catsToDestroy.includes(cat));
 
-      console.log(`[GameScene] ${this.cats.length} pirate(s) remaining. Speed: ${this.mouse.getSpeedMultiplier().toFixed(1)}×`);
+      console.log(`[GameScene] ${this.cats.length} robot(s) remaining. Speed: ${this.mouse.getSpeedMultiplier().toFixed(1)}×`);
 
       // Check if all cats eliminated
       if (this.cats.length === 0) {
-        console.log('[GameScene] All pirates defeated! Victory!');
+        console.log('[GameScene] All robots defeated! Victory!');
       }
     }
 
@@ -311,9 +322,9 @@ export class GameScene extends Phaser.Scene {
       this.percentageText.textContent = `${percentage.toFixed(1)}% / ${winPercentage}%`;
     }
 
-    // Update pirates count
+    // Update robots count
     if (this.piratesDisplay) {
-      this.piratesDisplay.textContent = `☠️ Pirates: ${this.cats.length}`;
+      this.piratesDisplay.textContent = `🤖 Robots: ${this.cats.length}`;
     }
 
     // Update score display
@@ -580,10 +591,10 @@ export class GameScene extends Phaser.Scene {
         y = 50;
       }
 
-      // Create cat
-      const cat = new Cat(this, x, y, this.gridManager);
-      cat.setDepth(5); // Below mouse, above grid
-      this.cats.push(cat);
+      // Create robot enemy (using current level for robot design variation)
+      const robot = new Robot(this, x, y, this.gridManager, this.currentLevel);
+      robot.setDepth(5); // Below mouse, above grid
+      this.cats.push(robot);
     }
   }
 
@@ -824,11 +835,23 @@ export class GameScene extends Phaser.Scene {
     this.activePowerUpEffect = powerUp.type;
     this.powerUpEffectTimer = GameConfig.powerUps.effectDuration;
 
-    // Apply effect to all cats
+    // Apply effect to all enemies (cats or robots)
     if (powerUp.type === PowerUpType.FREEZE) {
-      this.cats.forEach(cat => cat.setCatState(CatState.FROZEN));
+      this.cats.forEach(enemy => {
+        if (enemy instanceof Robot) {
+          enemy.setRobotState(RobotState.FROZEN);
+        } else {
+          enemy.setCatState(CatState.FROZEN);
+        }
+      });
     } else if (powerUp.type === PowerUpType.SLOW) {
-      this.cats.forEach(cat => cat.setCatState(CatState.SLOWED));
+      this.cats.forEach(enemy => {
+        if (enemy instanceof Robot) {
+          enemy.setRobotState(RobotState.SLOWED);
+        } else {
+          enemy.setCatState(CatState.SLOWED);
+        }
+      });
     }
 
     // Destroy power-up with animation
@@ -836,8 +859,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private endPowerUpEffect(): void {
-    // Restore all cats to normal state
-    this.cats.forEach(cat => cat.setCatState(CatState.NORMAL));
+    // Restore all enemies to normal state
+    this.cats.forEach(enemy => {
+      if (enemy instanceof Robot) {
+        enemy.setRobotState(RobotState.NORMAL);
+      } else {
+        enemy.setCatState(CatState.NORMAL);
+      }
+    });
 
     this.activePowerUpEffect = null;
     this.powerUpEffectTimer = 0;
@@ -848,6 +877,10 @@ export class GameScene extends Phaser.Scene {
   // ===============================
 
   private createAnimatedBackground(): void {
+    // Create graphics for wasteland background (depth 0.4, underneath everything)
+    this.wastelandGraphics = this.add.graphics();
+    this.wastelandGraphics.setDepth(0.4);
+
     // Create graphics for animated waves (depth 0.5, above void but below captured territory)
     this.waveGraphics = this.add.graphics();
     this.waveGraphics.setDepth(0.5);
@@ -860,6 +893,9 @@ export class GameScene extends Phaser.Scene {
     // Create graphics for palm trees (depth 2.5, above deck at 2, below cats at 5)
     this.palmTreeGraphics = this.add.graphics();
     this.palmTreeGraphics.setDepth(2.5);
+
+    // Initialize wasteland background on first render
+    this.renderWastelandBackground();
 
     // Create procedural particle textures
     this.createParticleTextures();
@@ -1414,6 +1450,150 @@ export class GameScene extends Phaser.Scene {
     if (powerupContainer) powerupContainer.style.display = 'none';
   }
 
+  // ===============================
+  // Wasteland Background System (Robot Invasion Theme)
+  // ===============================
+
+  /**
+   * Render wasteland background for all VOID cells
+   * This creates the "alien robot wasteland" appearance
+   */
+  private renderWastelandBackground(): void {
+    if (!this.wastelandGraphics) return;
+
+    this.wastelandGraphics.clear();
+
+    const grid = this.gridManager.getGrid();
+    const wasteland = this.currentTheme.wasteland;
+
+    // Render wasteland for each VOID cell
+    for (let y = 0; y < this.gridManager.getRows(); y++) {
+      for (let x = 0; x < this.gridManager.getCols(); x++) {
+        const state = grid[y][x];
+
+        if (state === CellState.VOID) {
+          this.renderWastelandCell(x, y, wasteland);
+        }
+      }
+    }
+  }
+
+  /**
+   * Render a single wasteland cell with procedural texture
+   */
+  private renderWastelandCell(x: number, y: number, wasteland: { colors: number[]; type: string }): void {
+    const cellSize = GameConfig.cellSize;
+
+    // Base color (random from wasteland palette)
+    const color = Phaser.Utils.Array.GetRandom(wasteland.colors);
+    this.wastelandGraphics.fillStyle(color, 1);
+    this.wastelandGraphics.fillRect(
+      x * cellSize,
+      y * cellSize,
+      cellSize,
+      cellSize
+    );
+
+    // Add type-specific details
+    if (wasteland.type === 'circuits') {
+      // Circuit lines (green tech)
+      this.wastelandGraphics.lineStyle(1, 0x00FF00, 0.3);
+
+      // Random circuit patterns
+      if (Math.random() > 0.7) {
+        const startX = x * cellSize + Math.random() * cellSize;
+        const startY = y * cellSize;
+        const endX = x * cellSize + Math.random() * cellSize;
+        const endY = (y + 1) * cellSize;
+
+        this.wastelandGraphics.beginPath();
+        this.wastelandGraphics.moveTo(startX, startY);
+        this.wastelandGraphics.lineTo(endX, endY);
+        this.wastelandGraphics.strokePath();
+      }
+
+      // Circuit nodes
+      if (Math.random() > 0.8) {
+        this.wastelandGraphics.fillStyle(0x00FF00, 0.5);
+        this.wastelandGraphics.fillCircle(
+          x * cellSize + cellSize / 2,
+          y * cellSize + cellSize / 2,
+          1
+        );
+      }
+    } else if (wasteland.type === 'rust') {
+      // Rust spots (orange/red)
+      if (Math.random() > 0.6) {
+        this.wastelandGraphics.fillStyle(0x8B4513, 0.4);
+        this.wastelandGraphics.fillCircle(
+          x * cellSize + Math.random() * cellSize,
+          y * cellSize + Math.random() * cellSize,
+          Math.random() * 2 + 1
+        );
+      }
+    } else if (wasteland.type === 'scorched') {
+      // Scorch marks (black streaks)
+      if (Math.random() > 0.7) {
+        this.wastelandGraphics.fillStyle(0x000000, 0.3);
+        this.wastelandGraphics.fillRect(
+          x * cellSize,
+          y * cellSize + Math.random() * cellSize,
+          cellSize,
+          Math.random() * 2 + 1
+        );
+      }
+    }
+  }
+
+  /**
+   * Play transformation effect when wasteland becomes nature
+   * Called when territory is captured
+   */
+  private playTransformationEffect(capturedCells: { x: number; y: number }[]): void {
+    if (capturedCells.length === 0) return;
+
+    // Create particle bursts for a sample of cells (not all, for performance)
+    const sampleSize = Math.min(capturedCells.length, 30); // Limit to 30 bursts
+    const sampledCells = Phaser.Utils.Array.Shuffle([...capturedCells]).slice(0, sampleSize);
+
+    sampledCells.forEach(cell => {
+      const cellSize = GameConfig.cellSize;
+      const worldX = cell.x * cellSize + cellSize / 2;
+      const worldY = cell.y * cellSize + cellSize / 2;
+
+      // Create burst texture if it doesn't exist
+      if (!this.textures.exists('transformation-particle')) {
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xFFFFFF, 1);
+        graphics.fillCircle(4, 4, 4);
+        graphics.generateTexture('transformation-particle', 8, 8);
+        graphics.destroy();
+      }
+
+      // Create particle emitter for transformation burst
+      const emitter = this.add.particles(worldX, worldY, 'transformation-particle', {
+        speed: { min: 50, max: 150 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 1, end: 0 },
+        tint: [0xFF6600, 0x00FF00, 0xFFD700], // Orange sparks → green nature → gold
+        lifespan: 800,
+        quantity: 8,
+        blendMode: Phaser.BlendModes.ADD,
+        gravityY: -50, // Float upward slightly
+      });
+
+      emitter.setDepth(100); // Above everything
+
+      // Auto-destroy after burst completes
+      this.time.delayedCall(1000, () => {
+        emitter.destroy();
+      });
+    });
+
+    // Re-render wasteland to remove captured cells from wasteland layer
+    this.renderWastelandBackground();
+  }
+
   // Cleanup method to prevent memory leaks
   shutdown(): void {
     // Destroy particle emitters
@@ -1424,5 +1604,6 @@ export class GameScene extends Phaser.Scene {
     this.waveGraphics?.destroy();
     this.causticsGraphics?.destroy();
     this.palmTreeGraphics?.destroy();
+    this.wastelandGraphics?.destroy();
   }
 }

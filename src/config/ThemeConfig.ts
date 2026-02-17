@@ -44,6 +44,14 @@ export interface ThemeVisuals {
     lineColor: number;
     textureName: string;
   };
+  wasteland: {
+    colors: number[];        // Dark colors for wasteland (void cells)
+    type: 'circuits' | 'rust' | 'scorched';
+    particles: {
+      type: 'smoke' | 'sparks' | 'acid';
+      color: number;
+    };
+  };
 }
 
 export const THEME_CONFIGS: Record<string, ThemeVisuals> = {
@@ -86,6 +94,11 @@ export const THEME_CONFIGS: Record<string, ThemeVisuals> = {
       lineColor: 0xDEB887,   // Burlywood
       textureName: 'deck',
     },
+    wasteland: {
+      colors: [0x2A2A2A, 0x3A3A3A, 0x4A4A4A], // Gray metal
+      type: 'circuits',
+      particles: { type: 'smoke', color: 0x666666 }
+    },
   },
 
   arctic: {
@@ -127,6 +140,11 @@ export const THEME_CONFIGS: Record<string, ThemeVisuals> = {
       lineColor: 0xB0E0E6,   // Powder blue
       textureName: 'ice',
     },
+    wasteland: {
+      colors: [0x1A1A1A, 0x2A2A2A, 0x3A3A3A], // Black metal
+      type: 'rust',
+      particles: { type: 'sparks', color: 0xFF6600 }
+    },
   },
 
   desert: {
@@ -167,6 +185,11 @@ export const THEME_CONFIGS: Record<string, ThemeVisuals> = {
       baseColor: 0x20B2AA,   // Light sea green (oasis water)
       lineColor: 0x3CB371,   // Medium sea green
       textureName: 'oasis',
+    },
+    wasteland: {
+      colors: [0x3A1A1A, 0x4A2A2A, 0x5A3A3A], // Red scorched
+      type: 'scorched',
+      particles: { type: 'acid', color: 0x88FF00 }
     },
   },
 };

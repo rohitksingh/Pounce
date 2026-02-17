@@ -42,11 +42,20 @@ export class MenuScene extends Phaser.Scene {
     title.setOrigin(0.5);
 
     // Subtitle
-    const subtitle = this.add.text(width / 2, height / 2 - 40, 'Territory Capture Game', {
+    const subtitle = this.add.text(width / 2, height / 2 - 60, 'Cat vs Robot Invasion', {
       fontSize: '24px',
       color: GameConfig.colors.menuText
     });
     subtitle.setOrigin(0.5);
+
+    // Story text
+    const story = this.add.text(width / 2, height / 2 - 20,
+      'Alien robots have conquered Earth.\nOne brave cat must restore nature...', {
+      fontSize: '16px',
+      color: '#95a5a6',
+      align: 'center'
+    });
+    story.setOrigin(0.5);
 
     // Start button
     const startButton = this.add.text(width / 2, height / 2 + 40, 'START GAME', {

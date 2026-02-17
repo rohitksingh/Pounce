@@ -26,15 +26,23 @@ export class VictoryScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Congratulations message
-    this.add.text(centerX, 250, 'You conquered all the pirate territories!', {
+    this.add.text(centerX, 250, 'You defeated the robot invasion!', {
       fontSize: '28px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
 
+    // Victory story
+    this.add.text(centerX, 300,
+      'Earth has been reclaimed from the alien robots.\nNature flourishes once again!', {
+      fontSize: '20px',
+      color: '#00FF00',
+      align: 'center'
+    }).setOrigin(0.5);
+
     // Final stats
-    this.add.text(centerX, 320, `Final Capture: ${data.percentage.toFixed(1)}%`, {
+    this.add.text(centerX, 370, `Final Capture: ${data.percentage.toFixed(1)}%`, {
       fontSize: '24px',
-      color: '#00FF00'
+      color: '#FFD700'
     }).setOrigin(0.5);
 
     // Return to menu button

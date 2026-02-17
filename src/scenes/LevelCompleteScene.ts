@@ -33,6 +33,20 @@ export class LevelCompleteScene extends Phaser.Scene {
       color: '#FFFFFF'
     }).setOrigin(0.5);
 
+    // Story progression text based on level
+    const storyTexts: Record<number, string> = {
+      1: 'The tropical wasteland has been restored!\nNature blooms where robots once ruled.',
+      2: 'The frozen wasteland melts away!\nLife returns to the arctic.',
+      3: 'The scorched desert becomes an oasis!\nThe robot invasion is defeated!'
+    };
+
+    const storyText = storyTexts[completedLevel] || 'Territory reclaimed!';
+    this.add.text(centerX, 320, storyText, {
+      fontSize: '18px',
+      color: '#00FF00',
+      align: 'center'
+    }).setOrigin(0.5);
+
     // Next level button
     const nextLevelText = this.add.text(centerX, 400, `Continue to Level ${nextLevel}`, {
       fontSize: '32px',

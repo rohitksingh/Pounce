@@ -14,7 +14,7 @@ export interface LevelDefinition {
 export const LEVELS: LevelDefinition[] = [
   {
     level: 1,
-    name: "Caribbean Beach",
+    name: "Tropical Wasteland",
     catCount: 5,
     catSpeed: 70,
     winPercentage: 85,
@@ -22,7 +22,7 @@ export const LEVELS: LevelDefinition[] = [
   },
   {
     level: 2,
-    name: "Arctic Ice",
+    name: "Arctic Wasteland",
     catCount: 7,
     catSpeed: 85,
     winPercentage: 90,
@@ -30,7 +30,7 @@ export const LEVELS: LevelDefinition[] = [
   },
   {
     level: 3,
-    name: "Desert Oasis",
+    name: "Scorched Desert",
     catCount: 10,
     catSpeed: 100,
     winPercentage: 95,

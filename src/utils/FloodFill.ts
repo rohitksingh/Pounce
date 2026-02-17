@@ -1,16 +1,20 @@
 import { CellState, GameConfig } from '../config/GameConfig';
 import { GridManager } from './GridManager';
 import { Cat } from '../entities/Cat';
+import { Robot } from '../entities/Robot';
+
+// Type alias for enemy entities (can be Cat or Robot)
+type Enemy = Cat | Robot;
 
 export class FloodFill {
   static fillTerritory(
     gridManager: GridManager,
     trail: { x: number; y: number }[],
-    cats: Cat[]
-  ): Cat[] {
+    cats: Enemy[]
+  ): Enemy[] {
     if (trail.length === 0) return [];
 
-    const catsToDestroy: Cat[] = [];
+    const catsToDestroy: Enemy[] = [];
 
     // Mark trail as captured first
     trail.forEach(point => {
@@ -176,7 +180,7 @@ export class FloodFill {
     return region;
   }
 
-  private static regionHasCats(region: { x: number; y: number }[], cats: Cat[]): boolean {
+  private static regionHasCats(region: { x: number; y: number }[], cats: Enemy[]): boolean {
     const cellSize = GameConfig.cellSize;
 
     return cats.some(cat => {
@@ -187,9 +191,9 @@ export class FloodFill {
     });
   }
 
-  private static getCatsInRegion(region: { x: number; y: number }[], cats: Cat[]): Cat[] {
+  private static getCatsInRegion(region: { x: number; y: number }[], cats: Enemy[]): Enemy[] {
     const cellSize = GameConfig.cellSize;
-    const trappedCats: Cat[] = [];
+    const trappedCats: Enemy[] = [];
 
     cats.forEach(cat => {
       const catGridX = Math.floor(cat.x / cellSize);

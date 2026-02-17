@@ -1460,157 +1460,182 @@ export class GameScene extends Phaser.Scene {
    * Renders once at scene start; captured territory overlays on top at depth 2
    */
   private renderWastelandBackground(): void {
-    if (!this.wastelandGraphics) return;
-
     this.wastelandGraphics.clear();
 
-    const W = GameConfig.width;
-    const H = GameConfig.height;
+    const W = GameConfig.width;   // ~800
+    const H = GameConfig.height;  // ~600
 
-    // ── LAYER 1: SKY GRADIENT ──────────────────────────────────
-    // Draw horizontal bands from top (dark murky green) to horizon (murky yellow-green)
-    const skySteps = 20;
-    for (let i = 0; i < skySteps; i++) {
-      const t = i / skySteps;
-      const r = Math.floor(Phaser.Math.Linear(0x3A, 0x5C, t));
-      const g = Math.floor(Phaser.Math.Linear(0x4A, 0x6B, t));
-      const b = Math.floor(Phaser.Math.Linear(0x2A, 0x3A, t));
-      const color = (r << 16) | (g << 8) | b;
-      this.wastelandGraphics.fillStyle(color, 1);
-      this.wastelandGraphics.fillRect(0, (H * 0.5 * i) / skySteps, W, H * 0.5 / skySteps + 1);
+    // ── BASE: Dark industrial metal floor ──────────────────────────
+    // Dark charcoal base - the main ground colour
+    this.wastelandGraphics.fillStyle(0x1E1E1E, 1);
+    this.wastelandGraphics.fillRect(0, 0, W, H);
+
+    // Metal plate grid lines (subtle lighter lines creating plate segments)
+    this.wastelandGraphics.lineStyle(1, 0x2E2E2E, 0.6);
+    const plateSize = 80;
+    for (let x = 0; x < W; x += plateSize) {
+      this.wastelandGraphics.beginPath();
+      this.wastelandGraphics.moveTo(x, 0);
+      this.wastelandGraphics.lineTo(x, H);
+      this.wastelandGraphics.strokePath();
+    }
+    for (let y = 0; y < H; y += plateSize) {
+      this.wastelandGraphics.beginPath();
+      this.wastelandGraphics.moveTo(0, y);
+      this.wastelandGraphics.lineTo(W, y);
+      this.wastelandGraphics.strokePath();
     }
 
-    // ── LAYER 2: BUILDING SILHOUETTES ─────────────────────────
-    // Dark broken buildings across the horizon
-    const buildingColor = 0x1A2420;
-
-    const buildings = [
-      { x: 0,   w: 80,  h: 120, broken: true },
-      { x: 60,  w: 50,  h: 90,  broken: true },
-      { x: 130, w: 70,  h: 150, broken: false },
-      { x: 220, w: 40,  h: 80,  broken: true },
-      { x: 280, w: 90,  h: 130, broken: true },
-      { x: 380, w: 60,  h: 110, broken: false },
-      { x: 460, w: 45,  h: 95,  broken: true },
-      { x: 520, w: 80,  h: 140, broken: true },
-      { x: 620, w: 55,  h: 100, broken: false },
-      { x: 690, w: 70,  h: 120, broken: true },
-      { x: 760, w: 40,  h: 85,  broken: true },
+    // ── RUST PATCHES (viewed from above) ──────────────────────────
+    // Irregular rust/corrosion patches on the metal floor
+    const rustPatches = [
+      { x: 60,  y: 80,  rx: 45, ry: 30 },
+      { x: 200, y: 150, rx: 60, ry: 35 },
+      { x: 380, y: 60,  rx: 40, ry: 25 },
+      { x: 520, y: 200, rx: 55, ry: 40 },
+      { x: 680, y: 90,  rx: 35, ry: 20 },
+      { x: 100, y: 320, rx: 50, ry: 30 },
+      { x: 300, y: 400, rx: 65, ry: 38 },
+      { x: 480, y: 350, rx: 42, ry: 28 },
+      { x: 650, y: 420, rx: 58, ry: 35 },
+      { x: 750, y: 280, rx: 38, ry: 22 },
+      { x: 160, y: 500, rx: 52, ry: 32 },
+      { x: 560, y: 520, rx: 48, ry: 30 },
     ];
 
-    const horizonY = H * 0.55;
+    rustPatches.forEach(p => {
+      // Outer dark rust
+      this.wastelandGraphics.fillStyle(0x5A2200, 0.5);
+      this.wastelandGraphics.fillEllipse(p.x, p.y, p.rx * 2, p.ry * 2);
+      // Inner brighter rust
+      this.wastelandGraphics.fillStyle(0x8B3A00, 0.4);
+      this.wastelandGraphics.fillEllipse(p.x, p.y, p.rx, p.ry);
+    });
 
-    buildings.forEach(b => {
-      const buildingTop = horizonY - b.h;
+    // ── OIL SPILLS (dark circles from above) ──────────────────────
+    const oilSpills = [
+      { x: 140, y: 200, r: 30 },
+      { x: 420, y: 130, r: 22 },
+      { x: 600, y: 310, r: 35 },
+      { x: 250, y: 450, r: 25 },
+      { x: 700, y: 180, r: 18 },
+      { x: 50,  y: 470, r: 28 },
+      { x: 370, y: 530, r: 20 },
+    ];
 
-      if (b.broken) {
-        // Main body (slightly offset top for jagged appearance)
-        this.wastelandGraphics.fillStyle(buildingColor, 1);
-        this.wastelandGraphics.fillRect(b.x, buildingTop + 20, b.w, b.h + 20);
-        // Darker window details (deterministic using modulo)
-        this.wastelandGraphics.fillStyle(0x0A1510, 1);
-        for (let wy = buildingTop + 25; wy < horizonY - 10; wy += 20) {
-          for (let wx = b.x + 5; wx < b.x + b.w - 10; wx += 15) {
-            const seed = ((wx * 7 + wy * 13) % 10);
-            if (seed > 3) {
-              this.wastelandGraphics.fillRect(wx, wy, 8, 10);
-            }
-          }
-        }
-      } else {
-        this.wastelandGraphics.fillStyle(buildingColor, 1);
-        this.wastelandGraphics.fillRect(b.x, buildingTop, b.w, b.h + 20);
-        // Window details (deterministic)
-        this.wastelandGraphics.fillStyle(0x0A1510, 1);
-        for (let wy = buildingTop + 10; wy < horizonY - 10; wy += 20) {
-          for (let wx = b.x + 5; wx < b.x + b.w - 10; wx += 15) {
-            const seed = ((wx * 7 + wy * 13) % 10);
-            if (seed > 4) {
-              this.wastelandGraphics.fillRect(wx, wy, 8, 10);
-            }
-          }
-        }
+    oilSpills.forEach(o => {
+      this.wastelandGraphics.fillStyle(0x050505, 0.8);
+      this.wastelandGraphics.fillEllipse(o.x, o.y, o.r * 2.2, o.r * 1.4);
+      // Slight sheen highlight
+      this.wastelandGraphics.fillStyle(0x1A1A2A, 0.3);
+      this.wastelandGraphics.fillEllipse(o.x - o.r * 0.2, o.y - o.r * 0.2, o.r * 0.8, o.r * 0.5);
+    });
+
+    // ── CAR ROOFTOPS (viewed from directly above) ──────────────────
+    // From top-down: cars look like rectangles with a windshield strip
+    const cars = [
+      { x: 30,  y: 40,  w: 36, h: 20, color: 0x4A4A4A },
+      { x: 110, y: 120, w: 42, h: 22, color: 0x6B3A1A },
+      { x: 230, y: 55,  w: 38, h: 20, color: 0x3A5A5A },
+      { x: 340, y: 180, w: 44, h: 24, color: 0x4A4A4A },
+      { x: 460, y: 75,  w: 40, h: 21, color: 0x5A3A1A },
+      { x: 570, y: 140, w: 36, h: 20, color: 0x3A4A4A },
+      { x: 690, y: 50,  w: 42, h: 22, color: 0x4A4A4A },
+      { x: 75,  y: 270, w: 40, h: 21, color: 0x5A3A1A },
+      { x: 180, y: 350, w: 38, h: 20, color: 0x3A5A5A },
+      { x: 310, y: 290, w: 44, h: 23, color: 0x4A4A4A },
+      { x: 430, y: 430, w: 40, h: 21, color: 0x6B3A1A },
+      { x: 560, y: 380, w: 36, h: 20, color: 0x3A4A4A },
+      { x: 680, y: 340, w: 42, h: 22, color: 0x4A4A4A },
+      { x: 40,  y: 540, w: 38, h: 20, color: 0x5A3A1A },
+      { x: 200, y: 510, w: 44, h: 23, color: 0x3A5A5A },
+      { x: 360, y: 470, w: 40, h: 21, color: 0x4A4A4A },
+      { x: 510, y: 540, w: 36, h: 20, color: 0x6B3A1A },
+      { x: 650, y: 500, w: 42, h: 22, color: 0x3A4A4A },
+      { x: 740, y: 450, w: 38, h: 20, color: 0x4A4A4A },
+      // Larger bus/truck rooftops
+      { x: 280, y: 220, w: 60, h: 26, color: 0x5A3A00 },
+      { x: 590, y: 260, w: 58, h: 25, color: 0x4A3A00 },
+      { x: 140, y: 430, w: 62, h: 27, color: 0x5A3A00 },
+      { x: 720, y: 390, w: 56, h: 24, color: 0x4A3A00 },
+    ];
+
+    cars.forEach(car => {
+      // Car roof colour
+      this.wastelandGraphics.fillStyle(car.color, 0.85);
+      this.wastelandGraphics.fillRect(car.x, car.y, car.w, car.h);
+      // Windshield (lighter strip across front third)
+      this.wastelandGraphics.fillStyle(0x1A2A2A, 0.9);
+      this.wastelandGraphics.fillRect(car.x + 3, car.y + 3, car.w * 0.35, car.h - 6);
+      // Rear window (smaller strip)
+      this.wastelandGraphics.fillStyle(0x1A2A2A, 0.7);
+      this.wastelandGraphics.fillRect(car.x + car.w - car.w * 0.25, car.y + 4, car.w * 0.2, car.h - 8);
+    });
+
+    // ── GROUND CRACKS ─────────────────────────────────────────────
+    // Jagged black cracks running across the metal floor
+    this.wastelandGraphics.lineStyle(2, 0x000000, 0.7);
+    const cracks = [
+      [[80, 30], [120, 80], [140, 120], [110, 160]],
+      [[300, 10], [280, 60], [320, 100], [360, 80]],
+      [[550, 50], [530, 110], [570, 150]],
+      [[700, 200], [660, 250], [710, 300], [680, 350]],
+      [[50, 380], [90, 420], [70, 470]],
+      [[230, 300], [260, 360], [240, 400], [280, 450]],
+      [[450, 250], [490, 290], [460, 340]],
+      [[620, 450], [660, 490], [640, 540]],
+      [[150, 550], [190, 570], [220, 555]],
+      [[400, 550], [440, 570], [420, 590]],
+    ];
+
+    cracks.forEach(crack => {
+      this.wastelandGraphics.beginPath();
+      this.wastelandGraphics.moveTo(crack[0][0], crack[0][1]);
+      for (let i = 1; i < crack.length; i++) {
+        this.wastelandGraphics.lineTo(crack[i][0], crack[i][1]);
+      }
+      this.wastelandGraphics.strokePath();
+    });
+
+    // ── DEBRIS/SCRAP PILES ────────────────────────────────────────
+    // Small clusters of metallic debris viewed from above
+    const debrisClusters = [
+      { x: 170, y: 80  },
+      { x: 440, y: 300 },
+      { x: 760, y: 150 },
+      { x: 90,  y: 490 },
+      { x: 500, y: 460 },
+    ];
+
+    debrisClusters.forEach((cluster, ci) => {
+      for (let i = 0; i < 8; i++) {
+        const ox = ((ci * 37 + i * 53) % 40) - 20;
+        const oy = ((ci * 29 + i * 41) % 30) - 15;
+        const size = 3 + (ci * 7 + i * 11) % 6;
+        this.wastelandGraphics.fillStyle(0x3A2A1A, 0.7);
+        this.wastelandGraphics.fillRect(cluster.x + ox, cluster.y + oy, size, size);
       }
     });
 
-    // ── LAYER 3: GROUND ──────────────────────────────────────
-    // Sandy brown ground from horizon to bottom
-    this.wastelandGraphics.fillStyle(0x8B7355, 1);
-    this.wastelandGraphics.fillRect(0, horizonY, W, H - horizonY);
-
-    // Ground texture variation (deterministic stripes)
-    this.wastelandGraphics.fillStyle(0x7A6245, 0.5);
-    for (let i = 0; i < 30; i++) {
-      const x = (i * 89) % W;
-      const y = horizonY + 10 + (i * 43) % (H - horizonY - 10);
-      this.wastelandGraphics.fillRect(x, y, 40 + (i * 7) % 60, 3 + (i * 3) % 5);
-    }
-
-    // ── LAYER 4: JUNK CAR PILES ──────────────────────────────
-    // Scattered across the mid-ground and foreground
-    const carPositions = [
-      { x: 30,  y: horizonY + 15, w: 45, h: 25, color: 0x5F9EA0 },
-      { x: 90,  y: horizonY + 20, w: 60, h: 30, color: 0xC4622D },
-      { x: 160, y: horizonY + 10, w: 40, h: 22, color: 0x4A7C80 },
-      { x: 200, y: horizonY + 25, w: 55, h: 28, color: 0xD4813A },
-      { x: 300, y: horizonY + 15, w: 50, h: 26, color: 0x5F9EA0 },
-      { x: 370, y: horizonY + 20, w: 70, h: 35, color: 0xB8541F },
-      { x: 450, y: horizonY + 10, w: 45, h: 24, color: 0x3A6B70 },
-      { x: 530, y: horizonY + 25, w: 55, h: 28, color: 0xC4622D },
-      { x: 600, y: horizonY + 15, w: 48, h: 25, color: 0x5F9EA0 },
-      { x: 660, y: horizonY + 20, w: 65, h: 32, color: 0xD4813A },
-      { x: 730, y: horizonY + 12, w: 42, h: 23, color: 0x4A7C80 },
-      // Second row (closer/larger)
-      { x: 10,  y: horizonY + 55, w: 55, h: 30, color: 0xC4622D },
-      { x: 120, y: horizonY + 60, w: 65, h: 35, color: 0x5F9EA0 },
-      { x: 240, y: horizonY + 50, w: 50, h: 28, color: 0xB8541F },
-      { x: 340, y: horizonY + 65, w: 75, h: 38, color: 0xD4813A },
-      { x: 440, y: horizonY + 55, w: 52, h: 29, color: 0x3A6B70 },
-      { x: 550, y: horizonY + 60, w: 60, h: 33, color: 0xC4622D },
-      { x: 640, y: horizonY + 50, w: 48, h: 27, color: 0x5F9EA0 },
-      { x: 720, y: horizonY + 65, w: 68, h: 36, color: 0xB8541F },
+    // ── SUBTLE CIRCUIT TRACES ─────────────────────────────────────
+    // Very faint green circuit-board lines on the metal (robotic feel)
+    this.wastelandGraphics.lineStyle(1, 0x003300, 0.25);
+    const circuits = [
+      [[200, 0], [200, 80], [280, 80], [280, 160]],
+      [[500, 0], [500, 60], [560, 60], [560, 120], [620, 120]],
+      [[0, 240], [80, 240], [80, 280], [160, 280]],
+      [[W, 360], [700, 360], [700, 420], [640, 420]],
+      [[300, H], [300, 520], [380, 520], [380, 480], [440, 480]],
     ];
 
-    carPositions.forEach(car => {
-      // Main car body
-      this.wastelandGraphics.fillStyle(car.color, 0.9);
-      this.wastelandGraphics.fillRect(car.x, car.y, car.w, car.h);
-
-      // Darker window strip
-      this.wastelandGraphics.fillStyle(0x1A1A1A, 0.7);
-      this.wastelandGraphics.fillRect(car.x + 5, car.y + 5, car.w - 10, Math.floor(car.h * 0.35));
-
-      // Rust/damage overlay on right portion
-      this.wastelandGraphics.fillStyle(0x3A2A1A, 0.3);
-      this.wastelandGraphics.fillRect(car.x + Math.floor(car.w * 0.6), car.y, Math.floor(car.w * 0.4), car.h);
-
-      // Wheels (dark circles at bottom corners)
-      this.wastelandGraphics.fillStyle(0x1A1A1A, 1);
-      this.wastelandGraphics.fillCircle(car.x + 10, car.y + car.h, 7);
-      this.wastelandGraphics.fillCircle(car.x + car.w - 10, car.y + car.h, 7);
+    circuits.forEach(circuit => {
+      this.wastelandGraphics.beginPath();
+      this.wastelandGraphics.moveTo(circuit[0][0], circuit[0][1]);
+      for (let i = 1; i < circuit.length; i++) {
+        this.wastelandGraphics.lineTo(circuit[i][0], circuit[i][1]);
+      }
+      this.wastelandGraphics.strokePath();
     });
-
-    // ── LAYER 5: DEBRIS/SCATTER ───────────────────────────────
-    // Small rocks and metal scraps (deterministic positions)
-    this.wastelandGraphics.fillStyle(0x5A4A35, 0.8);
-    for (let i = 0; i < 40; i++) {
-      const x = (i * 127 + 50) % W;
-      const y = horizonY + 5 + (i * 67) % (H - horizonY - 5);
-      const size = 3 + (i * 11) % 8;
-      this.wastelandGraphics.fillRect(x, y, size, Math.floor(size * 0.6));
-    }
-
-    // Metal scrap triangles
-    this.wastelandGraphics.fillStyle(0x6B5B45, 0.6);
-    for (let i = 0; i < 20; i++) {
-      const x = (i * 211 + 30) % W;
-      const y = horizonY + 10 + (i * 97) % (H - horizonY - 20);
-      this.wastelandGraphics.fillTriangle(
-        x, y + 8,
-        x + 12, y,
-        x + 18, y + 8
-      );
-    }
   }
 
   /**

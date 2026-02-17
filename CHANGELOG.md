@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-02-16
+
+### Fixed
+- Level title now updates correctly when progressing through levels
+  - Level 1: 🏝️ LEVEL 1: CARIBBEAN BEACH
+  - Level 2: ❄️ LEVEL 2: ARCTIC ICE
+  - Level 3: 🏜️ LEVEL 3: DESERT OASIS
+- Updated Level 1 name in config from "Tropical Paradise" to "Caribbean Beach"
+- Added dynamic level title update in GameScene with theme-based emojis
+
 ## [1.2.0] - 2026-02-16
 
 ### Added - Level 1 UI Redesign 🎨

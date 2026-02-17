@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-02-17
+
+### Changed
+- Replaced wasteland background with correct top-down (bird's eye) perspective
+  - Dark industrial metal floor with grid plate lines
+  - Rust/corrosion patches scattered on the ground
+  - Oil spill circles with subtle sheen
+  - Car and truck rooftops as viewed from directly above
+  - Ground cracks running across the metal floor
+  - Debris/scrap clusters in 5 locations
+  - Faint circuit traces for robotic atmosphere
+  - Fully static (no animation)
+
 ## [2.0.0] - 2026-02-17
 
 ### MAJOR THEMATIC REDESIGN 🤖

@@ -10,25 +10,14 @@ export class MenuScene extends Phaser.Scene {
     console.log('[MenuScene] Menu scene started');
 
     // Hide all game UI elements when menu starts
-    const levelIndicator = document.getElementById('level-indicator');
-    if (levelIndicator) {
-      levelIndicator.style.display = 'none';
-    } else {
-      console.error('[MenuScene] UI element missing: level-indicator');
+    const uiTopBar = document.getElementById('ui-top-bar');
+    if (uiTopBar) {
+      uiTopBar.style.display = 'none';
     }
 
-    const uiContainer = document.getElementById('ui-container');
-    if (uiContainer) {
-      uiContainer.style.display = 'none';
-    } else {
-      console.error('[MenuScene] UI element missing: ui-container');
-    }
-
-    const powerupContainer = document.getElementById('powerup-container');
-    if (powerupContainer) {
-      powerupContainer.style.display = 'none';
-    } else {
-      console.error('[MenuScene] UI element missing: powerup-container');
+    const uiBottomBar = document.getElementById('ui-bottom-bar');
+    if (uiBottomBar) {
+      uiBottomBar.style.display = 'none';
     }
 
     const { width, height } = GameConfig;

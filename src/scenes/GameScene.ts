@@ -100,7 +100,10 @@ export class GameScene extends Phaser.Scene {
     console.log(`[GameScene] Robots: ${GameConfig.initialCats} | Speed: ${GameConfig.catSpeed}`);
     console.log(`[GameScene] Grid size: ${GameConfig.gridCols}x${GameConfig.gridRows} = ${GameConfig.gridCols * GameConfig.gridRows} cells`);
 
-    // Create animated background layers
+    // Initialize grid FIRST (needed by background rendering)
+    this.gridManager = new GridManager();
+
+    // Create animated background layers (requires gridManager)
     this.createAnimatedBackground();
 
     // Create island texture overlay (will be masked by captured territory)
@@ -114,9 +117,6 @@ export class GameScene extends Phaser.Scene {
     this.islandOverlay.setOrigin(0, 0);
     this.islandOverlay.setAlpha(0); // Start invisible
     this.islandOverlay.setDepth(1); // Above sea
-
-    // Initialize grid
-    this.gridManager = new GridManager();
 
     // Create graphics objects
     this.gridGraphics = this.add.graphics();
@@ -200,8 +200,8 @@ export class GameScene extends Phaser.Scene {
       newlyCapturedCells.push({ x: point.x, y: point.y });
     });
 
-    // Play transformation effect (wasteland → nature)
-    this.playTransformationEffect(newlyCapturedCells);
+    // Play transformation effect (wasteland → nature) - DISABLED
+    // this.playTransformationEffect(newlyCapturedCells);
 
     // Destroy trapped cats and increase player speed
     if (catsToDestroy.length > 0) {
@@ -980,11 +980,11 @@ export class GameScene extends Phaser.Scene {
   private updateAnimatedBackground(_time: number, delta: number): void {
     this.waveTime += delta * 0.001; // Convert to seconds
 
-    // Render animated waves
-    this.renderAnimatedWaves();
+    // Render animated waves - DISABLED (user wants static background)
+    // this.renderAnimatedWaves();
 
-    // Render ambient effect (caustics, aurora, or heatwave)
-    this.renderAmbientEffect();
+    // Render ambient effect (caustics, aurora, or heatwave) - DISABLED
+    // this.renderAmbientEffect();
 
     // Update palm trees if captured territory changed
     this.updatePalmTrees();

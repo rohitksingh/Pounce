@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-02-16
+
+### MAJOR THEMATIC REDESIGN 🤖
+
+**Complete transformation from pirate theme to robot invasion story!**
+
+### Added
+- **Robot Enemies** - Three distinct procedural robot designs
+  - Level 1: Basic gray robot with red eyes and antenna
+  - Level 2: Advanced hexagon robot with blue glowing core and hover jets
+  - Level 3: Elite tank robot with blinking warning lights and armor plating
+- **Wasteland Background System** - Two-layer background rendering
+  - Tropical: Gray metallic wasteland with green circuit lines
+  - Arctic: Black metallic wasteland with rust spots
+  - Desert: Red scorched wasteland with black scorch marks
+- **Transformation Particle Effects** - Visual feedback when capturing territory
+  - Orange sparks → green nature → golden glow animation
+  - Max 30 bursts per capture for performance
+  - Shows wasteland transforming into nature
+- **New Story** - Cat hero reclaims Earth from alien robots
+  - Alien robots conquered Earth and turned landscapes into wastelands
+  - Player is a brave cat restoring nature to the planet
+  - Visual hook: Uncaptured = wasteland, Captured = natural paradise
+
+### Changed
+- **Level Names** - Updated to reflect wasteland theme
+  - Level 1: "Caribbean Beach" → "Tropical Wasteland"
+  - Level 2: "Arctic Ice" → "Arctic Wasteland"
+  - Level 3: "Desert Oasis" → "Scorched Desert"
+- **UI Text** - All references updated
+  - "Pirates" → "Robots" throughout
+  - Pirate emoji ☠️ → Robot emoji 🤖
+  - Page title: "Cat vs Robot Invasion"
+- **Story Scenes** - New narrative text
+  - MenuScene: Robot invasion intro story
+  - LevelCompleteScene: Level-specific victory messages
+  - VictoryScene: Final victory celebration
+
+### Technical
+- Created `Robot.ts` entity with same mechanics as Cat
+- Updated `FloodFill.ts` to support both Cat and Robot types
+- Added wasteland configuration to `ThemeConfig.ts`
+- GameScene supports union type `(Cat | Robot)[]` for enemies
+- Power-up system updated to handle both enemy types
+- Wasteland layer at depth 0.4 (renders only VOID cells)
+- Transformation particles use procedural textures
+
+### Breaking Changes
+- **Visual Theme**: Complete overhaul from pirate to robot aesthetics
+- **Enemy Display**: Code uses `cats` array but displays "Robots"
+- **Story Content**: All story text completely changed
+
+### Notes
+- All game mechanics preserved - only visuals and story changed
+- Performance-optimized wasteland rendering and particle effects
+- Both Cat and Robot entities coexist in codebase
+- See `ROBOT_INVASION_V2.md` for detailed documentation
+
 ## [1.2.1] - 2026-02-16
 
 ### Fixed
@@ -164,6 +222,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vitest 4.x for automated testing
 - GitHub Actions for CI/CD
 
-[Unreleased]: https://github.com/rohitksingh/Pounce/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/rohitksingh/Pounce/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/rohitksingh/Pounce/compare/v1.2.1...v2.0.0
+[1.2.1]: https://github.com/rohitksingh/Pounce/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/rohitksingh/Pounce/compare/v1.1.2...v1.2.0
+[1.1.2]: https://github.com/rohitksingh/Pounce/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/rohitksingh/Pounce/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/rohitksingh/Pounce/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/rohitksingh/Pounce/releases/tag/v1.0.0

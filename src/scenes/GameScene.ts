@@ -1455,93 +1455,161 @@ export class GameScene extends Phaser.Scene {
   // ===============================
 
   /**
-   * Render wasteland background for all VOID cells
-   * This creates the "alien robot wasteland" appearance
+   * Render atmospheric post-apocalyptic junkyard background
+   * Full-screen layered scene: sky gradient, ruined buildings, ground, junk cars, debris
+   * Renders once at scene start; captured territory overlays on top at depth 2
    */
   private renderWastelandBackground(): void {
     if (!this.wastelandGraphics) return;
 
     this.wastelandGraphics.clear();
 
-    const grid = this.gridManager.getGrid();
-    const wasteland = this.currentTheme.wasteland;
+    const W = GameConfig.width;
+    const H = GameConfig.height;
 
-    // Render wasteland for each VOID cell
-    for (let y = 0; y < this.gridManager.getRows(); y++) {
-      for (let x = 0; x < this.gridManager.getCols(); x++) {
-        const state = grid[y][x];
+    // ── LAYER 1: SKY GRADIENT ──────────────────────────────────
+    // Draw horizontal bands from top (dark murky green) to horizon (murky yellow-green)
+    const skySteps = 20;
+    for (let i = 0; i < skySteps; i++) {
+      const t = i / skySteps;
+      const r = Math.floor(Phaser.Math.Linear(0x3A, 0x5C, t));
+      const g = Math.floor(Phaser.Math.Linear(0x4A, 0x6B, t));
+      const b = Math.floor(Phaser.Math.Linear(0x2A, 0x3A, t));
+      const color = (r << 16) | (g << 8) | b;
+      this.wastelandGraphics.fillStyle(color, 1);
+      this.wastelandGraphics.fillRect(0, (H * 0.5 * i) / skySteps, W, H * 0.5 / skySteps + 1);
+    }
 
-        if (state === CellState.VOID) {
-          this.renderWastelandCell(x, y, wasteland);
+    // ── LAYER 2: BUILDING SILHOUETTES ─────────────────────────
+    // Dark broken buildings across the horizon
+    const buildingColor = 0x1A2420;
+
+    const buildings = [
+      { x: 0,   w: 80,  h: 120, broken: true },
+      { x: 60,  w: 50,  h: 90,  broken: true },
+      { x: 130, w: 70,  h: 150, broken: false },
+      { x: 220, w: 40,  h: 80,  broken: true },
+      { x: 280, w: 90,  h: 130, broken: true },
+      { x: 380, w: 60,  h: 110, broken: false },
+      { x: 460, w: 45,  h: 95,  broken: true },
+      { x: 520, w: 80,  h: 140, broken: true },
+      { x: 620, w: 55,  h: 100, broken: false },
+      { x: 690, w: 70,  h: 120, broken: true },
+      { x: 760, w: 40,  h: 85,  broken: true },
+    ];
+
+    const horizonY = H * 0.55;
+
+    buildings.forEach(b => {
+      const buildingTop = horizonY - b.h;
+
+      if (b.broken) {
+        // Main body (slightly offset top for jagged appearance)
+        this.wastelandGraphics.fillStyle(buildingColor, 1);
+        this.wastelandGraphics.fillRect(b.x, buildingTop + 20, b.w, b.h + 20);
+        // Darker window details (deterministic using modulo)
+        this.wastelandGraphics.fillStyle(0x0A1510, 1);
+        for (let wy = buildingTop + 25; wy < horizonY - 10; wy += 20) {
+          for (let wx = b.x + 5; wx < b.x + b.w - 10; wx += 15) {
+            const seed = ((wx * 7 + wy * 13) % 10);
+            if (seed > 3) {
+              this.wastelandGraphics.fillRect(wx, wy, 8, 10);
+            }
+          }
+        }
+      } else {
+        this.wastelandGraphics.fillStyle(buildingColor, 1);
+        this.wastelandGraphics.fillRect(b.x, buildingTop, b.w, b.h + 20);
+        // Window details (deterministic)
+        this.wastelandGraphics.fillStyle(0x0A1510, 1);
+        for (let wy = buildingTop + 10; wy < horizonY - 10; wy += 20) {
+          for (let wx = b.x + 5; wx < b.x + b.w - 10; wx += 15) {
+            const seed = ((wx * 7 + wy * 13) % 10);
+            if (seed > 4) {
+              this.wastelandGraphics.fillRect(wx, wy, 8, 10);
+            }
+          }
         }
       }
+    });
+
+    // ── LAYER 3: GROUND ──────────────────────────────────────
+    // Sandy brown ground from horizon to bottom
+    this.wastelandGraphics.fillStyle(0x8B7355, 1);
+    this.wastelandGraphics.fillRect(0, horizonY, W, H - horizonY);
+
+    // Ground texture variation (deterministic stripes)
+    this.wastelandGraphics.fillStyle(0x7A6245, 0.5);
+    for (let i = 0; i < 30; i++) {
+      const x = (i * 89) % W;
+      const y = horizonY + 10 + (i * 43) % (H - horizonY - 10);
+      this.wastelandGraphics.fillRect(x, y, 40 + (i * 7) % 60, 3 + (i * 3) % 5);
     }
-  }
 
-  /**
-   * Render a single wasteland cell with procedural texture
-   */
-  private renderWastelandCell(x: number, y: number, wasteland: { colors: number[]; type: string }): void {
-    const cellSize = GameConfig.cellSize;
+    // ── LAYER 4: JUNK CAR PILES ──────────────────────────────
+    // Scattered across the mid-ground and foreground
+    const carPositions = [
+      { x: 30,  y: horizonY + 15, w: 45, h: 25, color: 0x5F9EA0 },
+      { x: 90,  y: horizonY + 20, w: 60, h: 30, color: 0xC4622D },
+      { x: 160, y: horizonY + 10, w: 40, h: 22, color: 0x4A7C80 },
+      { x: 200, y: horizonY + 25, w: 55, h: 28, color: 0xD4813A },
+      { x: 300, y: horizonY + 15, w: 50, h: 26, color: 0x5F9EA0 },
+      { x: 370, y: horizonY + 20, w: 70, h: 35, color: 0xB8541F },
+      { x: 450, y: horizonY + 10, w: 45, h: 24, color: 0x3A6B70 },
+      { x: 530, y: horizonY + 25, w: 55, h: 28, color: 0xC4622D },
+      { x: 600, y: horizonY + 15, w: 48, h: 25, color: 0x5F9EA0 },
+      { x: 660, y: horizonY + 20, w: 65, h: 32, color: 0xD4813A },
+      { x: 730, y: horizonY + 12, w: 42, h: 23, color: 0x4A7C80 },
+      // Second row (closer/larger)
+      { x: 10,  y: horizonY + 55, w: 55, h: 30, color: 0xC4622D },
+      { x: 120, y: horizonY + 60, w: 65, h: 35, color: 0x5F9EA0 },
+      { x: 240, y: horizonY + 50, w: 50, h: 28, color: 0xB8541F },
+      { x: 340, y: horizonY + 65, w: 75, h: 38, color: 0xD4813A },
+      { x: 440, y: horizonY + 55, w: 52, h: 29, color: 0x3A6B70 },
+      { x: 550, y: horizonY + 60, w: 60, h: 33, color: 0xC4622D },
+      { x: 640, y: horizonY + 50, w: 48, h: 27, color: 0x5F9EA0 },
+      { x: 720, y: horizonY + 65, w: 68, h: 36, color: 0xB8541F },
+    ];
 
-    // Base color (random from wasteland palette)
-    const color = Phaser.Utils.Array.GetRandom(wasteland.colors);
-    this.wastelandGraphics.fillStyle(color, 1);
-    this.wastelandGraphics.fillRect(
-      x * cellSize,
-      y * cellSize,
-      cellSize,
-      cellSize
-    );
+    carPositions.forEach(car => {
+      // Main car body
+      this.wastelandGraphics.fillStyle(car.color, 0.9);
+      this.wastelandGraphics.fillRect(car.x, car.y, car.w, car.h);
 
-    // Add type-specific details
-    if (wasteland.type === 'circuits') {
-      // Circuit lines (green tech)
-      this.wastelandGraphics.lineStyle(1, 0x00FF00, 0.3);
+      // Darker window strip
+      this.wastelandGraphics.fillStyle(0x1A1A1A, 0.7);
+      this.wastelandGraphics.fillRect(car.x + 5, car.y + 5, car.w - 10, Math.floor(car.h * 0.35));
 
-      // Random circuit patterns
-      if (Math.random() > 0.7) {
-        const startX = x * cellSize + Math.random() * cellSize;
-        const startY = y * cellSize;
-        const endX = x * cellSize + Math.random() * cellSize;
-        const endY = (y + 1) * cellSize;
+      // Rust/damage overlay on right portion
+      this.wastelandGraphics.fillStyle(0x3A2A1A, 0.3);
+      this.wastelandGraphics.fillRect(car.x + Math.floor(car.w * 0.6), car.y, Math.floor(car.w * 0.4), car.h);
 
-        this.wastelandGraphics.beginPath();
-        this.wastelandGraphics.moveTo(startX, startY);
-        this.wastelandGraphics.lineTo(endX, endY);
-        this.wastelandGraphics.strokePath();
-      }
+      // Wheels (dark circles at bottom corners)
+      this.wastelandGraphics.fillStyle(0x1A1A1A, 1);
+      this.wastelandGraphics.fillCircle(car.x + 10, car.y + car.h, 7);
+      this.wastelandGraphics.fillCircle(car.x + car.w - 10, car.y + car.h, 7);
+    });
 
-      // Circuit nodes
-      if (Math.random() > 0.8) {
-        this.wastelandGraphics.fillStyle(0x00FF00, 0.5);
-        this.wastelandGraphics.fillCircle(
-          x * cellSize + cellSize / 2,
-          y * cellSize + cellSize / 2,
-          1
-        );
-      }
-    } else if (wasteland.type === 'rust') {
-      // Rust spots (orange/red)
-      if (Math.random() > 0.6) {
-        this.wastelandGraphics.fillStyle(0x8B4513, 0.4);
-        this.wastelandGraphics.fillCircle(
-          x * cellSize + Math.random() * cellSize,
-          y * cellSize + Math.random() * cellSize,
-          Math.random() * 2 + 1
-        );
-      }
-    } else if (wasteland.type === 'scorched') {
-      // Scorch marks (black streaks)
-      if (Math.random() > 0.7) {
-        this.wastelandGraphics.fillStyle(0x000000, 0.3);
-        this.wastelandGraphics.fillRect(
-          x * cellSize,
-          y * cellSize + Math.random() * cellSize,
-          cellSize,
-          Math.random() * 2 + 1
-        );
-      }
+    // ── LAYER 5: DEBRIS/SCATTER ───────────────────────────────
+    // Small rocks and metal scraps (deterministic positions)
+    this.wastelandGraphics.fillStyle(0x5A4A35, 0.8);
+    for (let i = 0; i < 40; i++) {
+      const x = (i * 127 + 50) % W;
+      const y = horizonY + 5 + (i * 67) % (H - horizonY - 5);
+      const size = 3 + (i * 11) % 8;
+      this.wastelandGraphics.fillRect(x, y, size, Math.floor(size * 0.6));
+    }
+
+    // Metal scrap triangles
+    this.wastelandGraphics.fillStyle(0x6B5B45, 0.6);
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 211 + 30) % W;
+      const y = horizonY + 10 + (i * 97) % (H - horizonY - 20);
+      this.wastelandGraphics.fillTriangle(
+        x, y + 8,
+        x + 12, y,
+        x + 18, y + 8
+      );
     }
   }
 
